@@ -1,0 +1,121 @@
+import { Building2, User, LogOut, Briefcase, Users, Bell } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/app/components/ui/dropdown-menu";
+
+interface CoCoNavbarProps {
+  onNavigate: (page: string) => void;
+  userName: string;
+  unreadNotifications?: number;
+}
+
+export function CoCoNavbar({ onNavigate, userName, unreadNotifications = 0 }: CoCoNavbarProps) {
+  const navItems = [
+    { id: "home", label: "Home", icon: Building2 },
+    { id: "my-companies", label: "My Companies", icon: Briefcase },
+    { id: "student-search", label: "Students", icon: Users }
+  ];
+
+  return (
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <div className="container mx-auto px-6">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <div className="flex items-center space-x-3">
+            <Building2 className="h-8 w-8 text-green-600" />
+            <span className="text-xl font-bold text-gray-900">PlaceIIT</span>
+            <span className="text-sm text-gray-500 hidden md:block">
+              | CoCo Portal
+            </span>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className="text-gray-700 hover:text-green-600 hover:bg-green-50"
+                  onClick={() => onNavigate(item.id)}
+                >
+                  <Icon className="h-4 w-4 mr-2" />
+                  {item.label}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* User Actions */}
+          <div className="flex items-center space-x-3">
+            {/* Notification Bell */}
+            <button 
+              className="h-9 w-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors cursor-pointer border-0 outline-none relative"
+              onClick={() => onNavigate("notifications")}
+            >
+              <Bell className="h-5 w-5 text-green-600" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              )}
+            </button>
+
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center hover:bg-green-200 transition-colors cursor-pointer border-0 outline-none">
+                  <User className="h-5 w-5 text-green-600" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-2 border-b">
+                  <p className="text-sm font-medium text-gray-900">{userName}</p>
+                  <p className="text-xs text-gray-500">Coordinator</p>
+                </div>
+                <DropdownMenuItem onClick={() => onNavigate("profile")}>
+                  <User className="h-4 w-4 mr-2" />
+                  My Profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Logout */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => onNavigate("logout")}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden border-t border-gray-200 py-2 flex overflow-x-auto space-x-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                key={item.id}
+                variant="ghost"
+                size="sm"
+                className="text-gray-700 hover:text-green-600 hover:bg-green-50 whitespace-nowrap"
+                onClick={() => onNavigate(item.id)}
+              >
+                <Icon className="h-4 w-4 mr-1" />
+                {item.label}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}

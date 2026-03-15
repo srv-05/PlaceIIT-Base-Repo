@@ -113,6 +113,31 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
           const studentsData: any = await cocoApi.getShortlistedStudents(cid).catch(() => []);
           const sList = Array.isArray(studentsData) ? studentsData : studentsData.students ?? [];
           setStudents(sList.map(normalizeStudent));
+          
+          // Fetch panels/rounds
+          try {
+            const roundsData: any = await cocoApi.getRounds(cid).catch(() => null);
+            if (roundsData) {
+              const roundsList = Array.isArray(roundsData) ? roundsData : roundsData.rounds ?? [];
+              const allPanels: Panel[] = [];
+              roundsList.forEach((rd: any) => {
+                if (rd.panels && Array.isArray(rd.panels)) {
+                  rd.panels.forEach((p: any) => {
+                    allPanels.push({
+                      id: p._id || p.id,
+                      name: p.panelName,
+                      members: p.interviewers || [],
+                      room: p.venue || companyObj.venue || "TBA",
+                      currentRound: rd.roundNumber || 1,
+                    });
+                  });
+                }
+              });
+              setPanels(allPanels);
+            }
+          } catch (e) {
+            console.error("Failed to fetch panels", e);
+          }
         }
       }
     } catch {

@@ -20,6 +20,13 @@ interface Student {
   round: number;
 }
 
+interface Panel {
+  _id: string;
+  panelName: string;
+  interviewers: string[];
+  venue?: string;
+}
+
 interface RoundTrackingPageProps {
   companyName: string;
   onBack: () => void;
@@ -32,6 +39,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
   const [companyId, setCompanyId] = useState("");
   const [totalRounds, setTotalRounds] = useState(3);
   const [studentsByRound, setStudentsByRound] = useState<Record<number, Student[]>>({});
+  const [panelsByRound, setPanelsByRound] = useState<Record<number, Panel[]>>({});
 
   const normalizeStudent = (raw: any, i: number, round: number): Student => {
     const statusRaw: string = raw.status ?? raw.queueEntry?.status ?? "in-queue";
@@ -70,7 +78,12 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
       if (cid) {
         const roundsData: any = await cocoApi.getRounds(cid).catch(() => null);
         const byRound: Record<number, Student[]> = {};
-        for (let r = 1; r <= rounds; r++) byRound[r] = [];
+        const panelsRoundMap: Record<number, Panel[]> = {};
+        
+        for (let r = 1; r <= rounds; r++) {
+          byRound[r] = [];
+          panelsRoundMap[r] = [];
+        }
 
         if (roundsData) {
           const roundsList = Array.isArray(roundsData) ? roundsData : roundsData.rounds ?? [];
@@ -78,6 +91,10 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
             const rn = rd.roundNumber ?? rd.round ?? 1;
             const studs = rd.students ?? rd.shortlistedStudents ?? [];
             byRound[rn] = studs.map((s: any, i: number) => normalizeStudent(s, i, rn));
+            
+            if (rd.panels && Array.isArray(rd.panels)) {
+              panelsRoundMap[rn] = rd.panels;
+            }
           });
         }
 
@@ -89,6 +106,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
         }
 
         setStudentsByRound(byRound);
+        setPanelsByRound(panelsRoundMap);
       }
     } catch {
       toast.error("Failed to load round data");
@@ -127,6 +145,8 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
 
   const renderRoundColumn = (round: number) => {
     const students = studentsByRound[round] || [];
+    const panels = panelsByRound[round] || [];
+    
     const inQueue = students.filter((s) => s.status === "in-queue");
     const yetToInterview = students.filter((s) => s.status === "yet-to-interview");
     const completed = students.filter((s) => s.status === "completed");
@@ -140,6 +160,26 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
+          {panels.length > 0 && (
+            <div className="mb-6 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
+              <h3 className="text-sm font-semibold text-indigo-800 mb-2 flex items-center">
+                Interview Panels
+              </h3>
+              <div className="space-y-2">
+                {panels.map(panel => (
+                  <div key={panel._id} className="bg-white p-2 rounded border border-indigo-50 shadow-sm text-sm">
+                    <div className="font-semibold text-indigo-900">{panel.panelName}</div>
+                    {panel.interviewers && panel.interviewers.length > 0 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        By: {panel.interviewers.join(", ")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {inQueue.length > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-blue-700 mb-3 flex items-center"><Clock className="h-4 w-4 mr-2" />In Queue ({inQueue.length})</h3>

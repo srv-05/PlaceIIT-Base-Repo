@@ -2,6 +2,7 @@ const Student = require("../models/Student.model");
 const Queue = require("../models/Queue.model");
 const Company = require("../models/Company.model");
 const Notification = require("../models/Notification.model");
+const Query = require("../models/Query.model");
 const { sortCompaniesByPriority, buildPriorityMap } = require("../utils/priorityHelper");
 const queueService = require("../services/queue.service");
 
@@ -186,8 +187,39 @@ const markNotifRead = async (req, res) => {
   }
 };
 
+// @desc    Submit a query
+// @route   POST /api/student/queries
+const submitQuery = async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    if (!subject || !message)
+      return res.status(400).json({ message: "Subject and message are required" });
+
+    const query = await Query.create({
+      studentUserId: req.user.id,
+      subject,
+      message,
+    });
+    res.status(201).json(query);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Get my queries
+// @route   GET /api/student/queries
+const getMyQueries = async (req, res) => {
+  try {
+    const queries = await Query.find({ studentUserId: req.user.id }).sort({ createdAt: -1 });
+    res.json(queries);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getProfile, updateProfile, getMyCompanies,
   joinQueue, joinWalkIn, leaveQueue, getWalkIns, getQueuePosition,
   getNotifications, markNotifRead,
+  submitQuery, getMyQueries,
 };

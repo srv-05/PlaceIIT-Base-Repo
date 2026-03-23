@@ -4,6 +4,7 @@ const {
   getProfile, updateProfile, getMyCompanies,
   joinQueue, joinWalkIn, leaveQueue, getWalkIns, getQueuePosition,
   getNotifications, markNotifRead,
+  submitQuery, getMyQueries,
 } = require("../controllers/student.controller");
 const { protect } = require("../middlewares/auth.middleware");
 const { authorize } = require("../middlewares/role.middleware");
@@ -20,5 +21,7 @@ router.get("/queue/:companyId", getQueuePosition);
 router.get("/walkins", getWalkIns);
 router.get("/notifications", getNotifications);
 router.put("/notifications/:id/read", markNotifRead);
+router.post("/queries", submitQuery);
+router.get("/queries", getMyQueries);
 
 module.exports = router;

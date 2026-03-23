@@ -13,8 +13,9 @@ import {
   DialogTrigger
 } from "@/app/components/ui/dialog";
 import { Phone, Mail, MapPin, Clock, User, MessageSquare, History } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { studentApi } from "@/app/lib/api";
 
 interface Query {
   id: string;
@@ -31,13 +32,36 @@ export function StudentContactPage() {
     message: ""
   });
 
-  // Queries will come from AP when a query API is built
-  const previousQueries: Query[] = [];
+  const [previousQueries, setPreviousQueries] = useState<Query[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchQueries = async () => {
+    try {
+      const data = (await studentApi.getMyQueries()) as any[];
+      setPreviousQueries(
+        data.map((q: any) => ({
+          id: q._id,
+          subject: q.subject,
+          message: q.message,
+          status: q.status ?? "pending",
+          date: q.createdAt,
+          response: q.response ?? undefined,
+        }))
+      );
+    } catch (_) {}
+  };
+
+  useEffect(() => { fetchQueries(); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Your message has been sent!");
-    setFormData({ subject: "", message: "" });
+    try {
+      await studentApi.submitQuery({ subject: formData.subject, message: formData.message });
+      toast.success("Your message has been sent!");
+      setFormData({ subject: "", message: "" });
+      await fetchQueries();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to send message");
+    }
   };
 
   const contacts = [

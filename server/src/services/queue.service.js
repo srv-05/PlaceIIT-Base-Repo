@@ -3,6 +3,7 @@ const Company = require("../models/Company.model");
 const Student = require("../models/Student.model");
 const { STUDENT_STATUS, SOCKET_EVENTS } = require("../utils/constants");
 const { getIO } = require("../config/socket");
+const InterviewRound = require("../models/InterviewRound.model");
 
 const joinQueue = async (studentId, companyId, isWalkIn = false) => {
   const company = await Company.findById(companyId);
@@ -30,14 +31,23 @@ const joinQueue = async (studentId, companyId, isWalkIn = false) => {
   const existing = await Queue.findOne({ companyId, studentId });
   if (existing) throw new Error("Student is already in this queue");
 
-  // Get next position
-  const lastEntry = await Queue.findOne({ companyId, status: STUDENT_STATUS.IN_QUEUE })
+  // Resolve active Round
+  let roundId = null;
+  const currentRoundNum = company.currentRound || 1;
+  const activeRound = await InterviewRound.findOne({ companyId, roundNumber: currentRoundNum });
+  if (activeRound) {
+     roundId = activeRound._id;
+  }
+
+  // Get next position scoped to this round
+  const lastEntry = await Queue.findOne({ companyId, roundId, status: { $in: [STUDENT_STATUS.IN_QUEUE, STUDENT_STATUS.IN_INTERVIEW] } })
     .sort({ position: -1 });
   const position = (lastEntry?.position || 0) + 1;
 
   const entry = await Queue.create({
     companyId,
     studentId,
+    roundId,
     status: STUDENT_STATUS.IN_QUEUE,
     position,
     isWalkIn,

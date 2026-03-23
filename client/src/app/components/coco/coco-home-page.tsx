@@ -23,6 +23,7 @@ interface Student {
   emergencyContact: string;
   status: "in-queue" | "in-interview" | "completed";
   round: number;
+  position: number;
   locationStatus: "in-queue" | "in-interview" | "no-show" | "completed-day";
   currentCompany?: string;
   userId: string;
@@ -99,6 +100,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
       emergencyContact: raw.emergencyContact?.phone ?? raw.student?.emergencyContact?.phone ?? "—",
       status: statusMap[statusRaw] ?? "in-queue",
       round: raw.round ?? raw.currentRound ?? 1,
+      position: raw.position ?? raw.queueEntry?.position ?? 0,
       locationStatus: (statusMap[statusRaw] ?? "in-queue") as Student["locationStatus"],
       currentCompany: raw.companyName ?? companyName,
       userId: raw.userId?._id ?? (typeof raw.userId === 'string' ? raw.userId : '') ?? "",
@@ -272,10 +274,15 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
   };
 
   const handleAssignNextToPanel = async (panel: Panel) => {
-    const nextStudent = students.find(s => s.status === "in-queue" && s.round === panel.currentRound);
-    if (!nextStudent) {
+    const roundQueue = students.filter(s => s.status === "in-queue" && s.round === panel.currentRound);
+    if (!roundQueue.length) {
       return toast.error("No students currently waiting in queue for Round " + panel.currentRound);
     }
+    
+    // Sort to fetch physically earliest position
+    roundQueue.sort((a,b) => a.position - b.position);
+    const nextStudent = roundQueue[0];
+    
     try {
       await cocoApi.assignPanelStudent(panel.id, { studentId: nextStudent.id });
       toast.success(`Assigned ${nextStudent.name} to ${panel.name}`);

@@ -283,9 +283,14 @@ const addStudentToRound = async (req, res) => {
     // Find or create queue entry
     let queueEntry = await Queue.findOne({ studentId, companyId });
 
+    // Calculate next position for this specific round
+    const lastEntry = await Queue.findOne({ companyId, roundId: resolvedRoundId, status: { $in: ["in_queue", "in_interview"] } }).sort({ position: -1 });
+    const nextPosition = (lastEntry && lastEntry.position ? lastEntry.position : 0) + 1;
+
     if (queueEntry) {
       queueEntry.roundId = resolvedRoundId;
       queueEntry.status = "in_queue";
+      queueEntry.position = nextPosition;
       await queueEntry.save();
     } else {
       queueEntry = await Queue.create({
@@ -293,6 +298,7 @@ const addStudentToRound = async (req, res) => {
         companyId,
         roundId: resolvedRoundId,
         status: "in_queue",
+        position: nextPosition,
       });
     }
 

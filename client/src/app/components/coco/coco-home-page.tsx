@@ -425,7 +425,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                   <SelectValue placeholder="Select Round" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: company.totalRounds }, (_, i) => i + 1).map((r) => (
+                  {Array.from({ length: Math.max(company?.totalRounds || 0, 3) }, (_, i) => i + 1).map((r) => (
                     <SelectItem key={r} value={r.toString()}>Round {r}</SelectItem>
                   ))}
                 </SelectContent>
@@ -482,7 +482,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
               <SelectTrigger className="w-40"><SelectValue placeholder="All Rounds" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Rounds</SelectItem>
-                {[...Array(company.totalRounds)].map((_, i) => (
+                {[...Array(Math.max(company?.totalRounds || 0, 3))].map((_, i) => (
                   <SelectItem key={i + 1} value={(i + 1).toString()}>Round {i + 1}</SelectItem>
                 ))}
               </SelectContent>

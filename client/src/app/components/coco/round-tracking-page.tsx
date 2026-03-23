@@ -240,9 +240,9 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
       // For round 1, anyone shortlisted who isn't physically in round 1's queue
       return shortlisted.filter(s => !queuedHere.find(q => q.id === s.id));
     } else {
-      // For round N > 1, anyone who COMPLETED round N-1 but isn't in round N's queue
-      const prevRoundCompleted = (studentsByRound[round - 1] || []).filter(s => s.status === "completed");
-      return prevRoundCompleted.filter(s => !queuedHere.find(q => q.id === s.id));
+      // Auto-promotion UI is intentionally disabled per user request. 
+      // Coordinators will manually dispatch valid candidates to downstream rounds explicitly.
+      return [];
     }
   };
 

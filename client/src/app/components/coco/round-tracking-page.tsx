@@ -88,7 +88,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
 
       const cid = companyObj._id ?? companyObj.id ?? "";
       setCompanyId(cid);
-      const rounds = companyObj.totalRounds ?? 3;
+      const rounds = Math.max(companyObj.totalRounds || 3, 3); // Force minimum 3 rounds visually
       setTotalRounds(rounds);
 
       if (cid) {
@@ -261,7 +261,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
     }
 
     return (
-      <Card className="flex-1 min-h-0 overflow-hidden flex flex-col bg-gray-50/30 border-0 shadow-sm ring-1 ring-gray-200">
+      <Card className="h-full flex flex-col bg-gray-50/30 border-0 shadow-sm ring-1 ring-gray-200">
         <CardHeader className="bg-white border-b shrink-0 pb-4">
           <CardTitle className="flex items-center justify-between text-lg">
             <span className="font-bold text-gray-800">Round {round}</span>
@@ -269,9 +269,9 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="flex-1 min-h-0 overflow-hidden flex flex-col p-3 gap-3">
+        <CardContent className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
           {panels.length > 0 && (
-            <div className="shrink-0 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100 shadow-sm">
+            <div className="bg-indigo-50/50 p-3 rounded-lg border border-indigo-100 shadow-sm">
               <h3 className="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-2">Active Panels</h3>
               <div className="space-y-2">
                 {panels.map(panel => (
@@ -285,15 +285,15 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
           )}
 
           {/* Not In Queue Section */}
-          <div className="flex flex-col flex-1 min-h-0 bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-            <div className="shrink-0 flex items-center justify-between mb-3 border-b pb-2">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="flex items-center justify-between mb-3 border-b pb-2">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center">
                  <Users className="h-4 w-4 mr-1.5 text-gray-400" />
                  Unassigned ({getNotInQueue(round).length})
               </h3>
             </div>
             
-            <div className="shrink-0 mb-3">
+            <div className="mb-3">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
                 <Input 
@@ -305,7 +305,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
               </div>
             </div>
             
-            <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-1.5 custom-scrollbar">
+            <div className="space-y-1.5">
               {notInQueue.map(s => renderStudentCard(s, true, round))}
               {notInQueue.length === 0 && (
                  <div className="text-center py-4 text-xs text-gray-400 bg-gray-50 rounded">
@@ -316,14 +316,14 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
           </div>
 
           {/* In Queue Section */}
-          <div className="flex flex-col flex-1 min-h-0 bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-            <div className="shrink-0 flex items-center justify-between mb-3 border-b pb-2">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="flex items-center justify-between mb-3 border-b pb-2">
               <h3 className="text-sm font-semibold text-blue-800 flex items-center">
                 <Clock className="h-4 w-4 mr-1.5" />
                 Live Queue ({inQueue.length})
               </h3>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-1.5 custom-scrollbar">
+            <div className="space-y-1.5">
                {inQueue.map(s => renderStudentCard(s))}
                {inQueue.length === 0 && <div className="text-center py-6 text-xs text-gray-400 bg-gray-50 rounded border border-dashed border-gray-200">Queue is empty.</div>}
             </div>
@@ -331,14 +331,14 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
 
           {/* Completed Section */}
           {completed.length > 0 && (
-            <div className="flex flex-col flex-shrink min-h-[100px] max-h-[30vh] bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-               <div className="shrink-0 flex items-center justify-between mb-3 border-b pb-2">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+               <div className="flex items-center justify-between mb-3 border-b pb-2">
                  <h3 className="text-sm font-semibold text-green-700 flex items-center">
                    <CheckCircle className="h-4 w-4 mr-1.5" />
                    Completed ({completed.length})
                  </h3>
                </div>
-               <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-1.5 opacity-75 hover:opacity-100 transition-opacity custom-scrollbar">
+               <div className="space-y-1.5 opacity-75 hover:opacity-100 transition-opacity">
                  {completed.map(s => renderStudentCard(s))}
                </div>
             </div>
@@ -421,8 +421,8 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
       </div>
 
       <div className="grid gap-6 md:grid-cols-3 flex-1 overflow-hidden min-h-0 pl-1 pb-2 scroll-smooth">
-        {Array.from({ length: Math.min(totalRounds, 5) }, (_, i) => i + 1).map((round) => (
-          <div key={round} className="h-full min-h-0 flex flex-col">{renderRoundColumn(round)}</div>
+        {Array.from({ length: Math.max(totalRounds, 3) }, (_, i) => i + 1).map((round) => (
+          <div key={round} className="h-full min-h-0">{renderRoundColumn(round)}</div>
         ))}
       </div>
     </div>

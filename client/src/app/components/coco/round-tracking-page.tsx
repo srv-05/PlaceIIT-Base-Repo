@@ -305,7 +305,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
               </div>
             </div>
             
-            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-1.5">
               {notInQueue.map(s => renderStudentCard(s, true, round))}
               {notInQueue.length === 0 && (
                  <div className="text-center py-4 text-xs text-gray-400 bg-gray-50 rounded">
@@ -323,7 +323,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
                 Live Queue ({inQueue.length})
               </h3>
             </div>
-            <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-1.5">
                {inQueue.map(s => renderStudentCard(s))}
                {inQueue.length === 0 && <div className="text-center py-6 text-xs text-gray-400 bg-gray-50 rounded border border-dashed border-gray-200">Queue is empty.</div>}
             </div>
@@ -338,7 +338,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
                    Completed ({completed.length})
                  </h3>
                </div>
-               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 opacity-75 hover:opacity-100 transition-opacity custom-scrollbar">
+               <div className="space-y-1.5 opacity-75 hover:opacity-100 transition-opacity">
                  {completed.map(s => renderStudentCard(s))}
                </div>
             </div>

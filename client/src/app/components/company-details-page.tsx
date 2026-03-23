@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
 import { adminApi } from "@/app/lib/api";
 import { toast } from "sonner";
 import { useSocket } from "@/app/socket-context";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -118,8 +118,10 @@ export function CompanyDetailsPage({
   const [filterBranch, setFilterBranch] = useState("all");
 
   // Editable fields
+  const [editableName, setEditableName] = useState(companyName);
   const [editableVenue, setEditableVenue] = useState(venue);
   const [editableCoCo, setEditableCoCo] = useState(cocoAssigned);
+  const [saving, setSaving] = useState(false);
 
   // Mock CoCo list
   const availableCocos = ["Arjun Mehta", "Kavya Singh", "Rohan Gupta", "Not Assigned"];
@@ -179,7 +181,7 @@ export function CompanyDetailsPage({
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">{companyName}</h1>
+          <h1 className="text-3xl font-bold text-gray-800">{editableName}</h1>
           <p className="text-gray-500">Company details and shortlisted students</p>
         </div>
       </div>
@@ -218,8 +220,8 @@ export function CompanyDetailsPage({
             <div className="flex items-start gap-3 bg-indigo-50 p-4 rounded-lg">
               <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
               <div>
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Venue</div>
-                <div className="font-semibold text-gray-900">{editableVenue}</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Venue</div>
+                <div className="font-semibold text-gray-900">Venue: {editableVenue}</div>
               </div>
             </div>
           </div>
@@ -235,7 +237,20 @@ export function CompanyDetailsPage({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Company Name</label>
+              <Input
+                value={editableName}
+                onChange={(e) => setEditableName(e.target.value)}
+                className="bg-white"
+                placeholder="Company name"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Update the company display name
+              </p>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Change CoCo</label>
               <Select value={editableCoCo} onValueChange={setEditableCoCo}>
@@ -267,6 +282,25 @@ export function CompanyDetailsPage({
                 Update the interview venue location
               </p>
             </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await adminApi.updateCompany(companyId, { name: editableName, venue: editableVenue });
+                  toast.success("Company updated successfully!");
+                } catch (err: any) {
+                  toast.error(err.message ?? "Failed to update company");
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? "Saving…" : "Save Changes"}
+            </Button>
           </div>
         </CardContent>
       </Card>

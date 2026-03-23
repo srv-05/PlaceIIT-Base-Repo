@@ -22,6 +22,7 @@ const seedUsers = [
         role: "student",
         name: "Rahul Kumar",
         rollNumber: "2021CS101",
+        phone: "9876543210",
     },
     {
         instituteId: "coco001",
@@ -30,6 +31,7 @@ const seedUsers = [
         role: "coco",
         name: "Priya Sharma",
         rollNumber: "2020EC045",
+        phone: "9876543211",
     },
 ];
 
@@ -52,10 +54,10 @@ async function seed() {
         });
 
         if (u.role === "student") {
-            await Student.create({ userId: user._id, name: u.name, rollNumber: u.rollNumber });
+            await Student.create({ userId: user._id, name: u.name, rollNumber: u.rollNumber, phone: u.phone });
             console.log(`Created student: ${u.instituteId}`);
         } else if (u.role === "coco") {
-            await Coordinator.create({ userId: user._id, name: u.name, rollNumber: u.rollNumber });
+            await Coordinator.create({ userId: user._id, name: u.name, rollNumber: u.rollNumber, phone: u.phone });
             console.log(`Created coordinator: ${u.instituteId}`);
         } else {
             console.log(`Created admin: ${u.instituteId}`);

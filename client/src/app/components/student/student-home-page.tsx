@@ -229,7 +229,7 @@ export function StudentHomePage() {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center text-sm text-gray-600">
-          <MapPin className="h-4 w-4 mr-2 text-gray-400" /> {company.venue}
+          <MapPin className="h-4 w-4 mr-2 text-gray-400" /> Venue: {company.venue}
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <Clock className="h-4 w-4 mr-2 text-gray-400" /> {company.day} — {company.slot}

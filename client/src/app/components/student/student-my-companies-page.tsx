@@ -17,6 +17,7 @@ interface Company {
   priority: number;
   interviewDate: string;
   round: number;
+  isWalkIn: boolean;
 }
 
 export function StudentMyCompaniesPage() {
@@ -36,6 +37,7 @@ export function StudentMyCompaniesPage() {
     priority: raw.priorityOrder ?? raw.order ?? i + 1,
     interviewDate: raw.interviewDate ?? raw.company?.interviewDate ?? "",
     round: raw.currentRound ?? raw.company?.currentRound ?? 1,
+    isWalkIn: !!raw.isWalkInEnabled,
   });
 
   const fetchCompanies = useCallback(async () => {
@@ -152,6 +154,7 @@ export function StudentMyCompaniesPage() {
                       <CardTitle className="text-xl text-gray-900">{company.name}</CardTitle>
                       <Badge variant="outline" className="text-xs">Priority {company.priority}</Badge>
                       <Badge variant="outline" className="text-xs">Round {company.round}</Badge>
+                      {company.isWalkIn && <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">Walk-in</Badge>}
                       {getStatusBadge(company.status)}
                     </div>
                     {company.role && <p className="text-sm text-gray-600">{company.role}</p>}
@@ -164,7 +167,7 @@ export function StudentMyCompaniesPage() {
                 <div className="space-y-2">
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                    {company.venue}
+                    Venue: {company.venue}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Clock className="h-4 w-4 mr-2 text-gray-400" />

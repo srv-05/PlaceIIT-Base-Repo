@@ -1,4 +1,5 @@
-// Bun natively loads .env - no dotenv needed
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../../../.env") });
 
 module.exports = {
   PORT: process.env.PORT || 5000,

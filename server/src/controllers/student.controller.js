@@ -34,7 +34,7 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// @desc    Get shortlisted companies sorted by priority
+// @desc    Get shortlisted companies sorted by priority (includes walk-in companies)
 // @route   GET /api/student/companies
 const getMyCompanies = async (req, res) => {
   try {
@@ -48,9 +48,20 @@ const getMyCompanies = async (req, res) => {
       priorityMap
     );
 
+    // Also fetch walk-in companies visible to all students
+    const walkInCompanies = await Company.find({ isWalkInEnabled: true, isActive: true });
+
+    // Merge: deduplicate by company ID
+    const shortlistedIds = new Set(sorted.map((c) => c._id.toString()));
+    const extraWalkins = walkInCompanies
+      .filter((w) => !shortlistedIds.has(w._id.toString()))
+      .map((w) => ({ ...w.toObject(), companyId: w._id, isWalkInEnabled: true }));
+
+    const allCompanies = [...sorted, ...extraWalkins];
+
     // Attach queue info for each company
     const result = await Promise.all(
-      sorted.map(async (company) => {
+      allCompanies.map(async (company) => {
         const queueEntry = await Queue.findOne({
           companyId: company._id,
           studentId: student._id,

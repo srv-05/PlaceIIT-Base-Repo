@@ -3,7 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Badge } from "@/app/components/ui/badge";
-import { User, Mail, Phone, GraduationCap, FileText, Award, Edit, Loader2, Save } from "lucide-react";
+import { User, Mail, Phone, GraduationCap, FileText, Award, Edit, Loader2, Save, Upload } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { studentApi } from "@/app/lib/api";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData>(EMPTY_PROFILE);
 
   const normalizeProfile = (raw: any): ProfileData => ({
@@ -72,7 +73,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
       await studentApi.updateProfile({
         name: profileData.name,
         contact: profileData.phone,
-        cgpa: profileData.cgpa ? parseFloat(profileData.cgpa) : undefined,
+        email: profileData.email,
         emergencyContact: {
           name: profileData.emergencyContactName,
           phone: profileData.emergencyContactPhone,
@@ -140,7 +141,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center"><Mail className="h-4 w-4 mr-2" />Email</Label>
-              <Input id="email" type="email" value={profileData.email} disabled className="bg-gray-50" />
+              <Input id="email" type="email" value={profileData.email} onChange={set("email")} disabled={!isEditing} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone" className="flex items-center"><Phone className="h-4 w-4 mr-2" />Phone Number</Label>
@@ -183,7 +184,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="cgpa">CGPA</Label>
-              <Input id="cgpa" value={profileData.cgpa} onChange={set("cgpa")} disabled={!isEditing} placeholder="e.g. 8.5" />
+              <Input id="cgpa" value={profileData.cgpa} disabled className="bg-gray-50" />
             </div>
           </div>
         </CardContent>
@@ -200,7 +201,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
               <div className="flex items-center">
                 <FileText className="h-8 w-8 text-indigo-600 mr-3" />
                 <div>
-                  <p className="font-medium text-gray-900 truncate max-w-xs">{profileData.resumeUrl}</p>
+                  <p className="font-medium text-gray-900 truncate max-w-xs">{profileData.resumeUrl.split("/").pop()}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -210,6 +211,36 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
           ) : (
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center text-gray-500">
               No resume uploaded yet.
+            </div>
+          )}
+          {isEditing && (
+            <div className="mt-4">
+              <Label htmlFor="resume-upload" className="flex items-center mb-2">
+                <Upload className="h-4 w-4 mr-2" /> Upload Resume (PDF only)
+              </Label>
+              <input
+                id="resume-upload"
+                type="file"
+                accept="application/pdf"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.type !== "application/pdf") { toast.error("Only PDF files are allowed"); return; }
+                  setUploading(true);
+                  try {
+                    const res: any = await studentApi.uploadResume(file);
+                    setProfileData((prev) => ({ ...prev, resumeUrl: res.resumePath ?? res.resume ?? prev.resumeUrl }));
+                    toast.success("Resume uploaded successfully!");
+                  } catch (err: any) {
+                    toast.error(err.message ?? "Failed to upload resume");
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+              {uploading && <p className="text-sm text-gray-400 mt-1 flex items-center"><Loader2 className="h-3 w-3 animate-spin mr-1" /> Uploading…</p>}
             </div>
           )}
         </CardContent>

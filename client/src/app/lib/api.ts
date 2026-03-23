@@ -146,6 +146,20 @@ export const studentApi = {
     submitQuery: (data: { subject: string; message: string }) =>
         request("/student/queries", { method: "POST", body: JSON.stringify(data) }),
     getMyQueries: () => request("/student/queries"),
+    uploadResume: (file: File) => {
+        const formData = new FormData();
+        formData.append("resume", file);
+        const token = getToken();
+        return fetch(`${API_BASE}/student/resume`, {
+            method: "POST",
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: formData,
+        }).then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message ?? "Upload failed");
+            return data;
+        });
+    },
 };
 
 /* ═══════════════════════════════════════════════════════════

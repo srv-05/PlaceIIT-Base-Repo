@@ -3,6 +3,7 @@ const Queue = require("../models/Queue.model");
 const Company = require("../models/Company.model");
 const Notification = require("../models/Notification.model");
 const Query = require("../models/Query.model");
+const User = require("../models/User.model");
 const { sortCompaniesByPriority, buildPriorityMap } = require("../utils/priorityHelper");
 const queueService = require("../services/queue.service");
 
@@ -23,13 +24,42 @@ const getProfile = async (req, res) => {
 // @route   PUT /api/student/profile
 const updateProfile = async (req, res) => {
   try {
-    const { contact, emergencyContact, friendContact, branch, batch, cgpa } = req.body;
+    const { contact, emergencyContact, friendContact, branch, batch, email } = req.body;
     const student = await Student.findOneAndUpdate(
       { userId: req.user.id },
-      { contact, emergencyContact, friendContact, branch, batch, cgpa, profileCompleted: true },
+      { contact, emergencyContact, friendContact, branch, batch, profileCompleted: true },
       { new: true }
     );
+    if (!student) return res.status(404).json({ message: "Student not found" });
+    // Update email on User model if provided
+    if (email) {
+      await User.findByIdAndUpdate(req.user.id, { email });
+    }
     res.json(student);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Upload student resume
+// @route   POST /api/student/resume
+const uploadResume = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const student = await Student.findOneAndUpdate(
+      { userId: req.user.id },
+      { resume: req.file.path },
+      { new: true }
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.json({ message: "Resume uploaded successfully", resumePath: student.resume });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -239,9 +269,11 @@ const clearAllNotifications = async (req, res) => {
   }
 };
 
+
 module.exports = {
   getProfile, updateProfile, getMyCompanies,
   joinQueue, joinWalkIn, leaveQueue, getWalkIns, getQueuePosition,
   getNotifications, markNotifRead, markAllNotifRead, clearAllNotifications,
   submitQuery, getMyQueries,
+  uploadResume,
 };

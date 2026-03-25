@@ -39,7 +39,7 @@ export function SocketProvider({ children, userId }: SocketProviderProps) {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Connect to the same origin – Vite proxies /socket.io → localhost:5000
+    // Connect to the same origin – Vite proxies /socket.io → localhost:5001
     const socket = io("/", {
       transports: ["websocket", "polling"],
       autoConnect: true,

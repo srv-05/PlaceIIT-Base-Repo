@@ -268,6 +268,9 @@ export const adminApi = {
         request("/admin/auto-allocate-cocos", { method: "POST" }),
     getCocoConflicts: () =>
         request("/admin/coco-conflicts"),
+    getQueries: () => request("/admin/queries"),
+    respondToQuery: (id: string, data: { response: string; status: string }) =>
+        request(`/admin/queries/${id}`, { method: "PUT", body: JSON.stringify(data) }),
 };
 
 /* ═══════════════════════════════════════════════════════════

@@ -22,6 +22,7 @@ import { APCCompaniesRoute } from "@/app/routes/apc/companies-route";
 import { APCCompanyDetailsRoute } from "@/app/routes/apc/company-details-route";
 import { APCProfileRoute } from "@/app/routes/apc/profile-route";
 import { APCApcsRoute } from "@/app/routes/apc/apcs-route";
+import { APCQueriesRoute } from "@/app/routes/apc/queries-route";
 
 // Student route pages
 import { StudentHomeRoute } from "@/app/routes/student/home-route";
@@ -71,6 +72,7 @@ function AppRoutes() {
             <Route path="companies" element={<APCCompaniesRoute />} />
             <Route path="companies/:id" element={<APCCompanyDetailsRoute />} />
             <Route path="profile" element={<APCProfileRoute />} />
+            <Route path="queries" element={<APCQueriesRoute />} />
           </Route>
 
           {/* Student Portal */}

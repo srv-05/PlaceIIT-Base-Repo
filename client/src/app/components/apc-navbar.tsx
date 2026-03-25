@@ -57,6 +57,13 @@ export function APCNavbar({ onNavigate, userName = "Admin", isMainAdmin }: APCNa
               Companies
             </button>
             
+            <button 
+              onClick={() => onNavigate?.('queries')}
+              className="text-gray-500 hover:text-gray-900 transition-colors font-medium"
+            >
+              Queries
+            </button>
+
             {isMainAdmin && (
               <button 
                 onClick={() => onNavigate?.('manage-apcs')}

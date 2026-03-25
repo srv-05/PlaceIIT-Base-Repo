@@ -64,12 +64,12 @@ export function CoCoNavbar({ onNavigate, userName, unreadNotifications = 0 }: Co
             {/* Notification Bell */}
             <Sheet>
               <SheetTrigger asChild>
-                <button 
+                <button
                   className="h-9 w-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors cursor-pointer border-0 outline-none relative"
                 >
                   <Bell className="h-5 w-5 text-green-600" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-sm border-2 border-white animate-slow-pulse-red">
                       {unreadNotifications > 9 ? "9+" : unreadNotifications}
                     </span>
                   )}

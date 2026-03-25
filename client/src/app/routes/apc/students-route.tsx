@@ -9,5 +9,5 @@ export function APCStudentsRoute() {
         navigate(`/apc/students/${student.id}`, { state: { student } });
     };
 
-    return <StudentSearchPage onStudentClick={handleStudentClick} fetchApi={adminApi.searchStudents} />;
+    return <StudentSearchPage onStudentClick={handleStudentClick} fetchApi={adminApi.searchStudents} allowAdd={true} />;
 }

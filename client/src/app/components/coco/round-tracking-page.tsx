@@ -47,15 +47,15 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-const StudentCard = ({ 
-  student, 
-  index, 
-  isFlagged = false, 
-  onFlag, 
-  onResume 
-}: { 
-  student: Student; 
-  index?: number; 
+const StudentCard = ({
+  student,
+  index,
+  isFlagged = false,
+  onFlag,
+  onResume
+}: {
+  student: Student;
+  index?: number;
   isFlagged?: boolean;
   onFlag?: (id: string) => void;
   onResume?: (id: string) => void;
@@ -79,13 +79,13 @@ const StudentCard = ({
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
             {getStatusBadge(isFlagged ? "on-hold" : student.status)}
-            
+
             {student.status === "in-queue" && !isFlagged && onFlag && (
               <Button size="sm" variant="ghost" className="h-6 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 mt-1" onClick={() => onFlag(student.id)}>
                 <Flag className="h-3 w-3 mr-1" /> Flag Absent
               </Button>
             )}
-            
+
             {isFlagged && onResume && (
               <Button size="sm" variant="outline" className="h-6 text-xs text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200 px-2 mt-1" onClick={() => onResume(student.id)}>
                 <PlayCircle className="h-3 w-3 mr-1" /> Resume
@@ -108,20 +108,42 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
   const [studentsByRound, setStudentsByRound] = useState<Record<number, Student[]>>({});
   const [panelsByRound, setPanelsByRound] = useState<Record<number, Panel[]>>({});
   const [roundIds, setRoundIds] = useState<Record<number, string>>({});
-  
+
   const [uploadingExcel, setUploadingExcel] = useState(false);
   const [excelRound, setExcelRound] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Manual Add states
-  const [manualStatus, setManualStatus] = useState("in-queue");
+  const [manualStatus, setManualStatus] = useState("yet-to-interview");
   const [manualStudentInput, setManualStudentInput] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (!manualStudentInput || selectedStudent?.name === manualStudentInput || selectedStudent?.rollNumber === manualStudentInput) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res: any = await cocoApi.searchStudents(manualStudentInput);
+        const arr = Array.isArray(res) ? res : res.students ?? [];
+        setSearchResults(arr);
+        setShowDropdown(true);
+      } catch (err) {
+        setSearchResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [manualStudentInput, selectedStudent]);
 
   const normalizeStudent = (raw: any, i: number, round: number): Student => {
     const statusRaw: string = raw.status ?? raw.queueEntry?.status ?? "in-queue";
     const statusMap: Record<string, Student["status"]> = {
       in_queue: "in-queue", waiting: "in-queue", "in-queue": "in-queue",
-      in_interview: "yet-to-interview", upcoming: "yet-to-interview", "yet-to-interview": "yet-to-interview",
+      not_joined: "yet-to-interview", in_interview: "yet-to-interview", upcoming: "yet-to-interview", "yet-to-interview": "yet-to-interview",
       completed: "completed", done: "completed",
       on_hold: "on-hold"
     };
@@ -140,7 +162,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
     try {
       const companyRes: any = await cocoApi.getAssignedCompany();
       const arr = Array.isArray(companyRes) ? companyRes : (companyRes.companies || (companyRes.company ? [companyRes.company] : []));
-      const companyObj = companyName 
+      const companyObj = companyName
         ? arr.find((c: any) => (c.name ?? "").toLowerCase() === (companyName || "").toLowerCase()) ?? arr[0]
         : arr[0];
 
@@ -210,20 +232,10 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
   }, [socket, companyId, fetchData]);
 
   const handleManualAdd = async () => {
-    if (!manualStudentInput) return toast.error("Please enter a student name or roll number");
+    if (!selectedStudent) return toast.error("Please explicitly select a student from the dropdown list");
     setUploadingExcel(true);
     try {
-      const results: any = await cocoApi.searchStudents(manualStudentInput.trim());
-      const studentArr = Array.isArray(results) ? results : results.students ?? [];
-      const student = studentArr.find((s: any) => 
-        s.name.toLowerCase() === manualStudentInput.toLowerCase().trim() || 
-        s.rollNumber.toLowerCase() === manualStudentInput.toLowerCase().trim()
-      ) || studentArr[0];
-      
-      if (!student) {
-         setUploadingExcel(false);
-         return toast.error("Student not found!");
-      }
+      const student = selectedStudent;
 
       await cocoApi.addStudentToRound({
         studentId: student._id || student.id,
@@ -234,14 +246,15 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
 
       if (manualStatus !== "in-queue") {
         await cocoApi.updateStudentStatus({
-           studentId: student._id || student.id,
-           companyId,
-           status: manualStatus === 'yet-to-interview' ? 'in_interview' : (manualStatus === 'on-hold' ? 'on_hold' : manualStatus)
+          studentId: student._id || student.id,
+          companyId,
+          status: manualStatus === 'yet-to-interview' ? 'in_interview' : (manualStatus === 'on-hold' ? 'on_hold' : manualStatus)
         });
       }
 
       toast.success(`${student.name} added successfully!`);
       setManualStudentInput("");
+      setSelectedStudent(null);
       setIsAddStudentOpen(false);
       await fetchData();
     } catch (err: any) {
@@ -278,9 +291,9 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
   const handleFlagAbsent = async (studentId: string) => {
     try {
       await cocoApi.updateStudentStatus({
-         studentId,
-         companyId,
-         status: 'on_hold'
+        studentId,
+        companyId,
+        status: 'on_hold'
       });
       toast.success("Student flagged as absent.", { description: "They have been temporarily skipped." });
       fetchData();
@@ -292,9 +305,9 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
   const handleResumeQueue = async (studentId: string) => {
     try {
       await cocoApi.updateStudentStatus({
-         studentId,
-         companyId,
-         status: 'in_queue'
+        studentId,
+        companyId,
+        status: 'in_queue'
       });
       toast.success("Student resumed in queue!", { description: "Their original queue order has been restored." });
       fetchData();
@@ -305,7 +318,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
 
   const renderRoundColumn = (round: number) => {
     const students = studentsByRound[round] || [];
-    
+
     const inQueueActive = students.filter((s) => s.status === "in-queue").sort((a, b) => a.position - b.position);
     const inQueueFlagged = students.filter((s) => s.status === "on-hold").sort((a, b) => a.position - b.position);
     const yetToInterview = students.filter((s) => s.status === "yet-to-interview").sort((a, b) => a.position - b.position);
@@ -322,21 +335,21 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
             </Badge>
           </CardTitle>
         </CardHeader>
-        
+
         <CardContent className="flex-1 min-h-0 overflow-y-auto flex flex-col p-5 pb-12 custom-scrollbar space-y-2">
-          
+
           {/* In Queue */}
           <h3 className="text-sm font-semibold text-blue-600 flex items-center mb-2 mt-1">
             <Clock className="h-4 w-4 mr-1.5" /> In Queue ({inQueueActive.length + inQueueFlagged.length})
           </h3>
           {inQueueActive.length === 0 && inQueueFlagged.length === 0 && (
-             <div className="text-center py-5 text-xs text-gray-400 border border-dashed rounded-lg bg-gray-50/50">Empty</div>
+            <div className="text-center py-5 text-xs text-gray-400 border border-dashed rounded-lg bg-gray-50/50">Empty</div>
           )}
           {inQueueActive.map((s, idx) => (
-             <StudentCard key={s.id} student={s} index={idx} onFlag={handleFlagAbsent} />
+            <StudentCard key={s.id} student={s} index={idx} onFlag={handleFlagAbsent} />
           ))}
           {inQueueFlagged.map((s) => (
-             <StudentCard key={s.id} student={s} isFlagged onResume={handleResumeQueue} />
+            <StudentCard key={s.id} student={s} isFlagged onResume={handleResumeQueue} />
           ))}
 
           {/* Yet to Interview */}
@@ -344,10 +357,10 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
             <AlertCircle className="h-4 w-4 mr-1.5" /> Yet to Interview ({yetToInterview.length})
           </h3>
           {yetToInterview.length === 0 && (
-             <div className="text-center py-5 text-xs text-gray-400 border border-dashed rounded-lg bg-gray-50/50">Empty</div>
+            <div className="text-center py-5 text-xs text-gray-400 border border-dashed rounded-lg bg-gray-50/50">Empty</div>
           )}
           {yetToInterview.map((s) => (
-             <StudentCard key={s.id} student={s} />
+            <StudentCard key={s.id} student={s} />
           ))}
 
           {/* Completed */}
@@ -355,10 +368,10 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
             <CheckCircle className="h-4 w-4 mr-1.5" /> Completed ({completed.length})
           </h3>
           {completed.length === 0 && (
-             <div className="text-center py-5 text-xs text-gray-400 border border-dashed rounded-lg bg-gray-50/50">Empty</div>
+            <div className="text-center py-5 text-xs text-gray-400 border border-dashed rounded-lg bg-gray-50/50">Empty</div>
           )}
           {completed.map((s) => (
-             <StudentCard key={s.id} student={s} />
+            <StudentCard key={s.id} student={s} />
           ))}
 
         </CardContent>
@@ -398,44 +411,72 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
                 <TabsTrigger value="manual">Manual Entry</TabsTrigger>
                 <TabsTrigger value="excel">Excel Upload</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="manual" className="space-y-4">
                 <div className="space-y-2">
                   <Label>Round</Label>
                   <Select value={String(excelRound)} onValueChange={(v) => setExcelRound(parseInt(v))}>
-                     <SelectTrigger className="bg-gray-50"><SelectValue placeholder="Select Round" /></SelectTrigger>
-                     <SelectContent>
-                       {Array.from({ length: totalRounds }, (_, i) => i + 1).map((r) => (
-                         <SelectItem key={r} value={String(r)}>{r}</SelectItem>
-                       ))}
-                     </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={manualStatus} onValueChange={setManualStatus}>
-                     <SelectTrigger className="bg-gray-50"><SelectValue placeholder="Select Status" /></SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="in-queue">In Queue</SelectItem>
-                       <SelectItem value="yet-to-interview">Yet to Interview</SelectItem>
-                       <SelectItem value="completed">Completed</SelectItem>
-                     </SelectContent>
+                    <SelectTrigger className="bg-gray-50"><SelectValue placeholder="Select Round" /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: totalRounds }, (_, i) => i + 1).map((r) => (
+                        <SelectItem key={r} value={String(r)}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Student Name or Roll Number</Label>
-                  <Input 
-                    placeholder="Enter name or roll number" 
-                    className="bg-gray-50"
-                    value={manualStudentInput} 
-                    onChange={(e) => setManualStudentInput(e.target.value)} 
-                  />
+                  <Label className="text-gray-500">Status</Label>
+                  <Select value={manualStatus} onValueChange={setManualStatus} disabled>
+                    <SelectTrigger className="bg-gray-100 cursor-not-allowed text-gray-500">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yet-to-interview">Yet to Interview</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700" 
+
+                <div className="space-y-2 relative">
+                  <Label>Student Name or Roll Number</Label>
+                  <Input
+                    placeholder="Search by name or roll number"
+                    className="bg-gray-50"
+                    value={manualStudentInput}
+                    onChange={(e) => {
+                      setManualStudentInput(e.target.value);
+                      setSelectedStudent(null);
+                    }}
+                    onFocus={() => {
+                      if (searchResults.length > 0) setShowDropdown(true);
+                    }}
+                    onBlur={() => {
+                      // Delay hiding dropdown so click can register
+                      setTimeout(() => setShowDropdown(false), 200);
+                    }}
+                  />
+                  {showDropdown && searchResults.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1 top-[60px]">
+                      {searchResults.map((s) => (
+                        <div
+                          key={s._id}
+                          className="px-4 py-2 hover:bg-green-50 cursor-pointer border-b last:border-0"
+                          onClick={() => {
+                            setSelectedStudent(s);
+                            setManualStudentInput(`${s.name} (${s.rollNumber})`);
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <div className="font-medium text-gray-900">{s.name}</div>
+                          <div className="text-xs text-gray-500">{s.rollNumber} • {s.email || "No email"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
                   onClick={handleManualAdd}
                   disabled={uploadingExcel}
                 >

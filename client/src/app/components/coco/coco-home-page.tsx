@@ -98,8 +98,22 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
   const [searchingStudents, setSearchingStudents] = useState(false);
   const [addingStudentId, setAddingStudentId] = useState<string | null>(null);
 
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [selectedStudentForNotification, setSelectedStudentForNotification] = useState<Student | null>(null);
+  const [notifyLoading, setNotifyLoading] = useState(false);
+
+  const PREDEFINED_MESSAGES = [
+    "Please report to our interview panel right now.",
+    "Your interview starts in 10 minutes. Please be ready.",
+    "You've been moved to the next round. See you soon.",
+    "Your interview has been slightly delayed. We'll call you shortly.",
+    "Congratulations! You have cleared this round.",
+    "Please bring a hard copy of your resume to the panel.",
+    "Your interview is over for today. Thank you.",
+  ];
+
   /* ── normalizer ── */
-  const normalizeStudent = (raw: any, i: number): Student => {
+  const normalizeStudent = (raw: any, i: number, compName: string): Student => {
     const hasQueueEntry = !!raw.queueEntry;
     const statusRaw: string = hasQueueEntry ? raw.queueEntry.status : "unassigned";
     const statusMap: Record<string, Student["status"]> = {
@@ -118,7 +132,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
       round: raw.round ?? raw.currentRound ?? 1,
       position: raw.position ?? raw.queueEntry?.position ?? 0,
       locationStatus: (statusMap[statusRaw] ?? "unassigned") as Student["locationStatus"],
-      currentCompany: raw.companyName ?? companyName,
+      currentCompany: raw.companyName ?? compName,
       userId: raw.userId?._id ?? (typeof raw.userId === 'string' ? raw.userId : '') ?? "",
     };
   };
@@ -152,12 +166,12 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
           currentRound: companyObj.currentRound ?? 1,
           totalRounds: companyObj.totalRounds ?? 1,
         });
-        setIsWalkinActive(!!companyObj.walkInOpen);
+        setIsWalkinActive(!!companyObj.isWalkInEnabled);
 
         if (cid) {
           const studentsData: any = await cocoApi.getShortlistedStudents(cid).catch(() => []);
           const sList = Array.isArray(studentsData) ? studentsData : studentsData.students ?? [];
-          setStudents(sList.map(normalizeStudent));
+          setStudents(sList.map((s: any, i: number) => normalizeStudent(s, i, companyObj.name ?? companyName)));
 
           try {
             const panelsData: any = await cocoApi.getPanels(cid).catch(() => []);
@@ -204,7 +218,10 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
 
   /* ── handlers ── */
   const handleSearchStudents = async () => {
-    if (!studentSearchQuery.trim()) return;
+    if (!studentSearchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
     setSearchingStudents(true);
     try {
       const data: any = await cocoApi.searchStudents(studentSearchQuery);
@@ -215,6 +232,17 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
       setSearchingStudents(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (studentSearchQuery.trim()) {
+        handleSearchStudents();
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [studentSearchQuery]);
 
   const handleAddStudentToQueue = async (studentId: string, studentName: string) => {
     if (!company.id) return toast.error("No company assigned");
@@ -259,17 +287,22 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
     }
   };
 
-  const handleSendNotification = async (studentId: string, type: string) => {
-    const student = students.find(s => s.id === studentId);
-    if (!student?.userId) return toast.error("Student user information not found");
+  const handleSendPredefinedNotification = async (message: string) => {
+    if (!selectedStudentForNotification) return;
+    setNotifyLoading(true);
     try {
-      const msg = type === "come"
-        ? `Please proceed to ${company.venue} for your ${company.name} interview.`
-        : `Update regarding your ${company.name} interview.`;
-      await cocoApi.sendNotification({ studentUserId: student.userId, companyId: company.id, message: msg });
-      toast.success("Notification sent!");
-    } catch {
-      toast.error("Failed to send notification");
+      if (!selectedStudentForNotification.userId) throw new Error("Student user information not found");
+      await cocoApi.sendNotification({
+        studentUserId: selectedStudentForNotification.userId,
+        companyId: company.id,
+        message: message
+      });
+      toast.success(`Message sent to ${selectedStudentForNotification.name}`);
+      setIsNotificationModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send notification");
+    } finally {
+      setNotifyLoading(false);
     }
   };
 
@@ -307,12 +340,12 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
   const handleEditPanelSave = async () => {
     if (!editingPanel) return;
     try {
-       await cocoApi.updatePanel(editingPanel.id, { venue: editPanelRoom, roundNumber: parseInt(editPanelRound) });
-       toast.success("Panel updated");
-       setEditingPanel(null);
-       fetchData();
+      await cocoApi.updatePanel(editingPanel.id, { venue: editPanelRoom, roundNumber: parseInt(editPanelRound) });
+      toast.success("Panel updated");
+      setEditingPanel(null);
+      fetchData();
     } catch (err: any) {
-       toast.error(err.message ?? "Failed to update panel");
+      toast.error(err.message ?? "Failed to update panel");
     }
   };
 
@@ -631,14 +664,24 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                         <p className="font-medium mb-1 text-gray-700">Panel Members:</p>
                         {panel.members.length > 0
                           ? panel.members.map((member, idx) => (
-                              <div key={idx} className="flex items-center gap-1 group">
-                                {editingMember?.panelId === panel.id && editingMember.memberIdx === idx ? (
-                                  <Input
-                                    className="h-6 text-xs flex-1 my-0.5"
-                                    autoFocus
-                                    value={editingMemberValue}
-                                    onChange={(e) => setEditingMemberValue(e.target.value)}
-                                    onBlur={() => {
+                            <div key={idx} className="flex items-center gap-1 group">
+                              {editingMember?.panelId === panel.id && editingMember.memberIdx === idx ? (
+                                <Input
+                                  className="h-6 text-xs flex-1 my-0.5"
+                                  autoFocus
+                                  value={editingMemberValue}
+                                  onChange={(e) => setEditingMemberValue(e.target.value)}
+                                  onBlur={() => {
+                                    setPanels(prev => prev.map(p => {
+                                      if (p.id !== panel.id) return p;
+                                      const newMembers = [...p.members];
+                                      newMembers[idx] = editingMemberValue;
+                                      return { ...p, members: newMembers };
+                                    }));
+                                    setEditingMember(null);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
                                       setPanels(prev => prev.map(p => {
                                         if (p.id !== panel.id) return p;
                                         const newMembers = [...p.members];
@@ -646,32 +689,22 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                                         return { ...p, members: newMembers };
                                       }));
                                       setEditingMember(null);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        setPanels(prev => prev.map(p => {
-                                          if (p.id !== panel.id) return p;
-                                          const newMembers = [...p.members];
-                                          newMembers[idx] = editingMemberValue;
-                                          return { ...p, members: newMembers };
-                                        }));
-                                        setEditingMember(null);
-                                      }
-                                    }}
-                                  />
-                                ) : (
-                                  <>
-                                    <span className="text-xs text-gray-500">• {member}</span>
-                                    <button
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-gray-100"
-                                      onClick={() => { setEditingMember({ panelId: panel.id, memberIdx: idx }); setEditingMemberValue(member); }}
-                                    >
-                                      <Pencil className="h-3 w-3 text-gray-400" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            ))
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <>
+                                  <span className="text-xs text-gray-500">• {member}</span>
+                                  <button
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-gray-100"
+                                    onClick={() => { setEditingMember({ panelId: panel.id, memberIdx: idx }); setEditingMemberValue(member); }}
+                                  >
+                                    <Pencil className="h-3 w-3 text-gray-400" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          ))
                           : <p className="text-xs text-gray-400">—</p>
                         }
                       </div>
@@ -754,13 +787,13 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                   <div className="flex gap-3 items-end">
                     <div className="flex-1">
                       <label className="text-xs text-gray-500 mb-1 block">Search Student</label>
-                      <Input placeholder="Search name or roll number..." value={studentSearchQuery} onChange={(e) => setStudentSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearchStudents()} />
+                      <Input placeholder="Search name or roll number..." value={studentSearchQuery} onChange={(e) => setStudentSearchQuery(e.target.value)} />
                     </div>
                     <div className="w-24">
                       <label className="text-xs text-gray-500 mb-1 block">Round</label>
                       <Input type="number" min="1" value={queueRoundInput} onChange={(e) => setQueueRoundInput(e.target.value)} />
                     </div>
-                    <Button onClick={handleSearchStudents} disabled={searchingStudents} className="bg-green-600 hover:bg-green-700 text-white">
+                    <Button onClick={handleSearchStudents} disabled={searchingStudents} className="bg-green-600 hover:bg-green-700 text-white min-w-[80px]">
                       {searchingStudents ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
                     </Button>
                   </div>
@@ -868,11 +901,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                       </Button>
                     ) : (
                       <>
-                        <Button size="sm" variant="outline" className="border-gray-300" onClick={() => handleSendNotification(student.id, "come")}>
-                          <Send className="h-3.5 w-3.5 mr-1" />
-                          Send to Interview
-                        </Button>
-                        <Button size="sm" variant="outline" className="border-gray-300" onClick={() => handleSendNotification(student.id, "general")}>
+                        <Button size="sm" variant="outline" className="border-gray-300" onClick={() => { setSelectedStudentForNotification(student); setIsNotificationModalOpen(true); }}>
                           <Mail className="h-3.5 w-3.5 mr-1" />
                           Send Notification
                         </Button>
@@ -902,6 +931,34 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
           )}
         </CardContent>
       </Card>
+
+      {/* Notification Dialog */}
+      <Dialog open={isNotificationModalOpen} onOpenChange={setIsNotificationModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Notification</DialogTitle>
+            <DialogDescription>
+              Select a predefined message to send to {selectedStudentForNotification?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-4">
+            {PREDEFINED_MESSAGES.map((msg, idx) => (
+              <Button
+                key={idx}
+                variant="outline"
+                className="justify-start h-auto py-3 px-4 text-left font-normal whitespace-normal w-full"
+                onClick={() => handleSendPredefinedNotification(msg)}
+                disabled={notifyLoading}
+              >
+                <div className="flex gap-2 w-full">
+                  <span className="text-gray-500 font-medium shrink-0">{idx + 1}.</span>
+                  <span className="text-gray-800 flex-1">{msg}</span>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

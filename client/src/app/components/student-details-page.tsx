@@ -187,21 +187,7 @@ export function StudentDetailsPage({
               </div>
             </div>
 
-            <div className="flex items-start gap-3 bg-indigo-50 p-4 rounded-lg">
-              <Building2 className="h-5 w-5 text-indigo-600 mt-0.5" />
-              <div>
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Department</div>
-                <div className="font-semibold text-gray-900">{department}</div>
-              </div>
-            </div>
 
-            <div className="flex items-start gap-3 bg-indigo-50 p-4 rounded-lg">
-              <GraduationCap className="h-5 w-5 text-indigo-600 mt-0.5" />
-              <div>
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">CGPA</div>
-                <div className="font-semibold text-gray-900">{cgpa}</div>
-              </div>
-            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 mt-6">
@@ -229,20 +215,7 @@ export function StudentDetailsPage({
               </div>
             </div>
 
-            <div className="flex items-start gap-3 bg-gray-50 p-4 rounded-lg">
-              <FileText className="h-5 w-5 text-indigo-600 mt-0.5" />
-              <div className="flex-1">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Resume</div>
-                <a
-                  href={resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-indigo-600 hover:text-indigo-700 underline"
-                >
-                  View Resume
-                </a>
-              </div>
-            </div>
+
           </div>
 
           {inInterview && interviewWith && (
@@ -346,11 +319,9 @@ export function StudentDetailsPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Days</SelectItem>
-                  <SelectItem value="Monday">Monday</SelectItem>
-                  <SelectItem value="Tuesday">Tuesday</SelectItem>
-                  <SelectItem value="Wednesday">Wednesday</SelectItem>
-                  <SelectItem value="Thursday">Thursday</SelectItem>
-                  <SelectItem value="Friday">Friday</SelectItem>
+                  <SelectItem value="Day 1">Day 1</SelectItem>
+                  <SelectItem value="Day 2">Day 2</SelectItem>
+                  <SelectItem value="Day 3">Day 3</SelectItem>
                 </SelectContent>
               </Select>
             </div>

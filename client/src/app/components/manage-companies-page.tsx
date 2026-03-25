@@ -63,9 +63,9 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
     name: raw.name ?? "—",
     cocoAssigned: raw.assignedCocos?.length
       ? raw.assignedCocos.map((c: any) => {
-          const idStr = c.userId?.instituteId ? ` (${c.userId.instituteId})` : "";
-          return `${c.name ?? c}${idStr}`;
-        }).join(", ")
+        const idStr = c.userId?.instituteId ? ` (${c.userId.instituteId})` : "";
+        return `${c.name ?? c}${idStr}`;
+      }).join(", ")
       : "Not Assigned",
     venue: raw.venue ?? "Not Assigned",
     day: raw.day != null ? `Day ${raw.day}` : "—",
@@ -274,7 +274,7 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
                     <Select value={newCompanyDay} onValueChange={setNewCompanyDay}>
                       <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
                       <SelectContent>
-                        {[1, 2, 3, 4, 5].map((d) => (
+                        {[1, 2, 3].map((d) => (
                           <SelectItem key={d} value={`Day ${d}`}>Day {d}</SelectItem>
                         ))}
                       </SelectContent>

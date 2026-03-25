@@ -40,10 +40,10 @@ const login = async (req, res) => {
 
     res.json({
       token,
-      user: { 
-        id: user._id.toString(), 
-        instituteId: user.instituteId, 
-        role: user.role, 
+      user: {
+        id: user._id.toString(),
+        instituteId: user.instituteId,
+        role: user.role,
         email: user.email,
         mustChangePassword: user.mustChangePassword,
         isMainAdmin: user.isMainAdmin
@@ -59,7 +59,20 @@ const login = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user.id).select("-password").lean();
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    let profile = null;
+    if (user.role === ROLES.STUDENT) profile = await Student.findOne({ userId: user._id });
+    else if (user.role === ROLES.COCO) profile = await Coordinator.findOne({ userId: user._id });
+    // APC profile could be added here if needed, but Student and Coordinator cover the main ones.
+
+    if (profile) {
+      user.name = profile.name;
+      user.contact = profile.contact || profile.phone;
+      user.department = profile.department || profile.branch;
+    }
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -217,13 +230,15 @@ const changePassword = async (req, res) => {
     user.mustChangePassword = false;
     await user.save();
 
-    res.json({ message: "Password changed successfully", user: {
-      id: user._id,
-      instituteId: user.instituteId,
-      role: user.role,
-      email: user.email,
-      mustChangePassword: false 
-    }});
+    res.json({
+      message: "Password changed successfully", user: {
+        id: user._id,
+        instituteId: user.instituteId,
+        role: user.role,
+        email: user.email,
+        mustChangePassword: false
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

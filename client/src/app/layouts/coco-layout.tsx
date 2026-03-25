@@ -14,13 +14,15 @@ export function CoCoLayout() {
     const fetchUnreadCount = useCallback(async () => {
         try {
             const data: any = await cocoApi.getNotifications();
-            const list = Array.isArray(data) ? data : [];
-            const unread = list.filter((n: any) => !n.isRead).length;
+            // Server may return an array directly or { notifications: [...] }
+            const list = Array.isArray(data) ? data : data.notifications ?? [];
+            // Check for isRead or read (some older models might use read)
+            const unread = list.filter((n: any) => !n.isRead && !n.read).length;
             auth.setCocoUnreadNotificationsCount(unread);
         } catch {
             // silently fail
         }
-    }, []);
+    }, [auth]);
 
     useEffect(() => {
         fetchUnreadCount();

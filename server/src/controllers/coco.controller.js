@@ -296,24 +296,36 @@ const addStudentToRound = async (req, res) => {
       resolvedRoundId = round._id;
     }
 
+    // Translate frontend 'yet-to-interview' to backend 'not_joined'
+    let inputStatus = req.body.status === "yet-to-interview" ? "not_joined" : req.body.status;
+    let finalStatus = inputStatus || "in_queue";
+
     // Find or create queue entry
     let queueEntry = await Queue.findOne({ studentId, companyId });
 
-    // Calculate next position for this specific round
-    const lastEntry = await Queue.findOne({ companyId, roundId: resolvedRoundId, status: { $in: ["in_queue", "in_interview"] } }).sort({ position: -1 });
-    const nextPosition = (lastEntry && lastEntry.position ? lastEntry.position : 0) + 1;
-
     if (queueEntry) {
+      if (queueEntry.roundId?.toString() === resolvedRoundId.toString() && ["in_queue", "in_interview", "on_hold", "not_joined"].includes(queueEntry.status)) {
+        return res.status(400).json({ message: "Student is actively in this round's queue already." });
+      }
+
+      // Calculate next position for this specific round
+      const lastEntry = await Queue.findOne({ companyId, roundId: resolvedRoundId, status: { $in: ["in_queue", "in_interview"] } }).sort({ position: -1 });
+      const nextPosition = (lastEntry && lastEntry.position ? lastEntry.position : 0) + 1;
+
       queueEntry.roundId = resolvedRoundId;
-      queueEntry.status = "in_queue";
+      queueEntry.status = finalStatus;
       queueEntry.position = nextPosition;
       await queueEntry.save();
     } else {
+      // Calculate next position for this specific round
+      const lastEntry = await Queue.findOne({ companyId, roundId: resolvedRoundId, status: { $in: ["in_queue", "in_interview"] } }).sort({ position: -1 });
+      const nextPosition = (lastEntry && lastEntry.position ? lastEntry.position : 0) + 1;
+
       queueEntry = await Queue.create({
         studentId,
         companyId,
         roundId: resolvedRoundId,
-        status: "in_queue",
+        status: finalStatus,
         position: nextPosition,
       });
     }
@@ -425,7 +437,7 @@ const getPredefinedNotifications = async (req, res) => {
 const Notification = require("../models/Notification.model");
 const getCocoNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ 
+    const notifications = await Notification.find({
       recipientId: req.user.id,
       source: { $in: ["student", "apc"] }
     })
@@ -459,7 +471,7 @@ const markNotifRead = async (req, res) => {
 // @route   DELETE /api/coco/notifications
 const clearAllNotifications = async (req, res) => {
   try {
-    await Notification.deleteMany({ 
+    await Notification.deleteMany({
       recipientId: req.user.id,
       source: { $in: ["student", "apc"] }
     });

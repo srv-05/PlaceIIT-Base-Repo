@@ -179,3 +179,13 @@
     line-height: 1.5;
   }
 }
+
+@keyframes slow-pulse-red {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.animate-slow-pulse-red {
+  animation: slow-pulse-red 2s infinite;
+}

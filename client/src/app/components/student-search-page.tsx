@@ -28,9 +28,10 @@ interface Student {
 interface StudentSearchPageProps {
   onStudentClick: (student: Student) => void;
   fetchApi: (query: string) => Promise<any>;
+  allowAdd?: boolean;
 }
 
-export function StudentSearchPage({ onStudentClick, fetchApi }: StudentSearchPageProps) {
+export function StudentSearchPage({ onStudentClick, fetchApi, allowAdd = false }: StudentSearchPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
@@ -156,72 +157,74 @@ export function StudentSearchPage({ onStudentClick, fetchApi }: StudentSearchPag
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Student Search</h1>
           <p className="text-gray-500">Search and view student information</p>
         </div>
-        <div className="flex gap-2">
-          {/* Excel Upload for Students */}
-          <div className="relative group">
-            <input id="student-excel-upload" type="file" accept=".xlsx,.xls" onChange={handleExcelUpload} className="hidden" />
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 border-gray-300"
-              onClick={() => document.getElementById("student-excel-upload")?.click()}
-            >
-              <Upload className="h-4 w-4" /> Upload Students (Excel)
-            </Button>
-            <div className="absolute top-12 right-0 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-2 z-10 w-64 shadow-lg">
-              Excel must have exactly 4 columns in any order: <strong>Name, Roll Number, Email ID, Phone Number</strong>.
+        {allowAdd && (
+          <div className="flex gap-2">
+            {/* Excel Upload for Students */}
+            <div className="relative group">
+              <input id="student-excel-upload" type="file" accept=".xlsx,.xls" onChange={handleExcelUpload} className="hidden" />
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 border-gray-300"
+                onClick={() => document.getElementById("student-excel-upload")?.click()}
+              >
+                <Upload className="h-4 w-4" /> Upload Students (Excel)
+              </Button>
+              <div className="absolute top-12 right-0 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-2 z-10 w-64 shadow-lg">
+                Excel must have exactly 4 columns in any order: <strong>Name, Roll Number, Email ID, Phone Number</strong>.
+              </div>
             </div>
-          </div>
 
-          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700 flex items-center gap-2">
-                <UserPlus className="h-4 w-4" />
-                Add Student
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Student</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddStudent} className="space-y-4 pt-4">
-              <Input
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-              <Input
-                placeholder="Roll Number"
-                value={formData.rollNumber}
-                onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })}
-                required
-              />
-              <Input
-                placeholder="Email ID"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-              <Input
-                placeholder="Phone Number (10 digits)"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                required
-                pattern="\d{10}"
-                title="Must be a valid 10-digit phone number"
-              />
-              <p className="text-xs text-gray-500">
-                A random secure password will be auto-generated and emailed to the student. They will be forced to reset it upon first login.
-              </p>
-              <Button type="submit" className="w-full bg-indigo-600" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Create Student Account
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-        </div>
+            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-green-600 hover:bg-green-700 flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Add Student
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Student</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddStudent} className="space-y-4 pt-4">
+                  <Input
+                    placeholder="Full Name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                  <Input
+                    placeholder="Roll Number"
+                    value={formData.rollNumber}
+                    onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })}
+                    required
+                  />
+                  <Input
+                    placeholder="Email ID"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                  <Input
+                    placeholder="Phone Number (10 digits)"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    required
+                    pattern="\d{10}"
+                    title="Must be a valid 10-digit phone number"
+                  />
+                  <p className="text-xs text-gray-500">
+                    A random secure password will be auto-generated and emailed to the student. They will be forced to reset it upon first login.
+                  </p>
+                  <Button type="submit" className="w-full bg-indigo-600" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Create Student Account
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
 
       {/* Search Bar */}
@@ -293,10 +296,7 @@ export function StudentSearchPage({ onStudentClick, fetchApi }: StudentSearchPag
                     </div>
                     <p className="text-sm text-gray-500 mt-1.5 font-medium">Roll No: {student.rollNo}</p>
                   </div>
-                  <div className="text-right bg-gray-50 px-4 py-2 rounded-lg">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{student.department}</div>
-                    <div className="text-lg font-bold text-indigo-600 mt-1">CGPA: {student.cgpa}</div>
-                  </div>
+
                 </div>
               </CardHeader>
               <CardContent>
@@ -315,29 +315,14 @@ export function StudentSearchPage({ onStudentClick, fetchApi }: StudentSearchPag
                       <span className="text-sm text-gray-900 font-medium">{student.phone}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 bg-red-50 p-3 rounded-lg md:col-span-2">
+                  <div className={`flex items-center gap-3 bg-red-50 p-3 rounded-lg ${student.inInterview || student.queuedFor ? "" : "md:col-span-2"}`}>
                     <Phone className="h-5 w-5 text-red-600" />
                     <div>
                       <div className="text-xs text-red-600 font-semibold uppercase tracking-wide mb-0.5">Emergency Contact</div>
                       <span className="text-sm text-gray-900 font-medium">{student.emergencyContact || "—"}</span>
                     </div>
                   </div>
-                  {student.resumeUrl && (
-                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                      <FileText className="h-5 w-5 text-indigo-600" />
-                      <div>
-                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-0.5">Resume</div>
-                        <a
-                          href={student.resumeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-indigo-600 font-medium hover:underline"
-                        >
-                          View Resume
-                        </a>
-                      </div>
-                    </div>
-                  )}
+
                   {student.inInterview && (
                     <div className="flex items-center gap-3 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                       <Clock className="h-5 w-5 text-yellow-700" />

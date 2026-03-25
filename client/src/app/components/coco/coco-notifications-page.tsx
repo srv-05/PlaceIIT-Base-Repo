@@ -19,6 +19,7 @@ interface Notification {
   company?: string;
   timestamp: string;
   isRead: boolean;
+  read?: boolean;
 }
 
 export function CoCoNotificationsPage() {
@@ -70,7 +71,8 @@ export function CoCoNotificationsPage() {
   // ── Sync Unread Count to Navbar ─────────────────────────────────────────
   useEffect(() => {
     if (!loading) {
-      const unread = notifications.filter(n => !n.isRead).length;
+      // Robust calculation: filter isRead and read (compat)
+      const unread = notifications.filter(n => !n.isRead && !n.read).length;
       auth.setCocoUnreadNotificationsCount(unread);
     }
   }, [notifications, loading, auth]);
@@ -107,7 +109,7 @@ export function CoCoNotificationsPage() {
   const getNotificationIcon = (source: string, type: string) => {
     if (source === "apc") return <ShieldAlert className="h-5 w-5 text-red-600" />;
     if (source === "student") return <User className="h-5 w-5 text-blue-600" />;
-    
+
     switch (type) {
       case "success": return <CheckCircle className="h-5 w-5 text-green-600" />;
       case "warning": return <AlertCircle className="h-5 w-5 text-yellow-600" />;
@@ -172,11 +174,11 @@ export function CoCoNotificationsPage() {
       {/* Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-           {unreadCount > 0 && (
-             <Badge className="bg-red-100 text-red-800 border-red-200 text-sm px-2 py-1">
-               {unreadCount} New
-             </Badge>
-           )}
+          {unreadCount > 0 && (
+            <Badge className="bg-red-100 text-red-800 border-red-200 text-sm px-2 py-1">
+              {unreadCount} New
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
@@ -185,9 +187,9 @@ export function CoCoNotificationsPage() {
             </Button>
           )}
           {notifications.length > 0 && (
-             <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50">
-               <Trash2 className="h-3 w-3 mr-1" /> Clear
-             </Button>
+            <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50">
+              <Trash2 className="h-3 w-3 mr-1" /> Clear
+            </Button>
           )}
         </div>
       </div>
@@ -220,22 +222,21 @@ export function CoCoNotificationsPage() {
             <div
               key={notification.id}
               onClick={() => !notification.isRead && handleMarkRead(notification.id)}
-              className={`p-3 rounded-lg border transition-colors cursor-pointer ${
-                !notification.isRead ? "border-green-300 bg-green-50 shadow-sm" : "border-gray-200 hover:bg-gray-50 bg-white"
-              }`}
+              className={`p-3 rounded-lg border transition-colors cursor-pointer ${!notification.isRead ? "border-green-300 bg-green-50 shadow-sm" : "border-gray-200 hover:bg-gray-50 bg-white"
+                }`}
             >
               <div className="flex items-start gap-3">
                 <div className="mt-1 flex-shrink-0">{getNotificationIcon(notification.source, notification.type)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                     <span className="font-semibold text-sm text-gray-900 truncate pr-2">{notification.title}</span>
-                     {getNotificationBadge(notification.source, notification.type)}
+                    <span className="font-semibold text-sm text-gray-900 truncate pr-2">{notification.title}</span>
+                    {getNotificationBadge(notification.source, notification.type)}
                   </div>
-                  
+
                   {notification.source === "student" && notification.senderName && (
-                     <div className="text-xs font-medium text-gray-700 mb-1">
-                       From: {notification.senderName} {notification.senderRoll ? `(${notification.senderRoll})` : ""}
-                     </div>
+                    <div className="text-xs font-medium text-gray-700 mb-1">
+                      From: {notification.senderName} {notification.senderRoll ? `(${notification.senderRoll})` : ""}
+                    </div>
                   )}
 
                   {notification.company && (
@@ -243,9 +244,9 @@ export function CoCoNotificationsPage() {
                       <Building2 className="h-3 w-3 mr-1 flex-shrink-0" /> {notification.company}
                     </div>
                   )}
-                  
+
                   <p className="text-xs text-gray-700 mb-2 line-clamp-3">{notification.message}</p>
-                  
+
                   <div className="flex items-center gap-2 text-[11px] text-gray-500">
                     <Clock className="h-3 w-3" /> {formatTimestamp(notification.timestamp)}
                     {!notification.isRead && <span className="w-1.5 h-1.5 rounded-full bg-green-600 ml-auto" />}

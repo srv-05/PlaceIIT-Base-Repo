@@ -43,7 +43,7 @@ interface Company {
   day: string;
   slot: string;
   venue?: string;
-  cocoAssigned?: string;
+  requiredCocosCount?: number;
 }
 
 interface CoCoAssignment {
@@ -86,6 +86,9 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
   const [unallotted, setUnallotted] = useState<any[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assigningCompanyId, setAssigningCompanyId] = useState<string | null>(null);
+  const [selectedCocos, setSelectedCocos] = useState<string[]>([]);
 
   const normalizeCoco = (raw: any): CoCo => ({
     id: raw._id ?? raw.id ?? "",
@@ -102,6 +105,7 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
     day: raw.day != null ? `Day ${raw.day}` : "—",
     slot: formatSlotLabel(raw.slot),
     venue: raw.venue ?? "Not Assigned",
+    requiredCocosCount: raw.requiredCocosCount ?? 1,
   });
 
   const fetchAll = useCallback(async () => {
@@ -255,25 +259,80 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
     assignments.filter((a) => a.cocoId === cocoId).length;
 
   const handleChangeAssignment = async (companyId: string, newCoCoId: string) => {
-    const prevAssignment = assignments.find((a) => a.companyId === companyId);
-    // Optimistically update
-    setAssignments((prev) => {
-      const filtered = prev.filter((a) => a.companyId !== companyId);
-      if (newCoCoId) filtered.push({ cocoId: newCoCoId, companyId });
-      return filtered;
-    });
+    // left for legacy support if needed
+  };
+
+  const handleUpdateRequiredCocosCount = async (companyId: string, count: number) => {
     try {
-      if (prevAssignment) {
-        await adminApi.removeCoco({ cocoId: prevAssignment.cocoId, companyId });
+      await adminApi.updateCompany(companyId, { requiredCocosCount: count });
+      setCompanies(prev => prev.map(c => c.id === companyId ? { ...c, requiredCocosCount: count } : c));
+      toast.success("Updated required CoCos count");
+    } catch(err: any) {
+      toast.error(err.message ?? "Failed to update required CoCos count");
+    }
+  };
+
+  const getCoCosAssignedToCompany = (companyId: string) =>
+    assignments
+      .filter((a) => a.companyId === companyId)
+      .map((a) => cocos.find((c) => c.id === a.cocoId))
+      .filter((c): c is CoCo => c !== undefined);
+
+  const openAssignDialog = (companyId: string) => {
+    const comp = companies.find((c) => c.id === companyId);
+    if (!comp) return;
+    setAssigningCompanyId(companyId);
+    setAssignDialogOpen(true);
+    const currAssigned = assignments.filter((a) => a.companyId === companyId).map((a) => a.cocoId);
+    const req = comp.requiredCocosCount || 1;
+    const initialArr = [...currAssigned];
+    while (initialArr.length < req) {
+      initialArr.push("");
+    }
+    initialArr.length = req;
+    setSelectedCocos(initialArr);
+  };
+
+  const handleConfirmAssignmentDialog = async () => {
+    if (!assigningCompanyId) return;
+    const comp = companies.find((c) => c.id === assigningCompanyId);
+    if (!comp) return;
+
+    const req = comp.requiredCocosCount || 1;
+    const valid = selectedCocos.filter((id) => id.trim() !== "");
+    if (valid.length < req) {
+      toast.warning(`Warning: Assigned less than the required ${req} CoCo(s). Company is set to yellow.`);
+    }
+
+    try {
+      const oldAssigned = assignments.filter((a) => a.companyId === assigningCompanyId).map((a) => a.cocoId);
+      const added = valid.filter((id) => !oldAssigned.includes(id));
+      const removed = oldAssigned.filter((id) => !valid.includes(id));
+
+      for (const id of removed) {
+        await adminApi.removeCoco({ cocoId: id, companyId: assigningCompanyId });
       }
-      if (newCoCoId) {
-        await adminApi.assignCoco({ cocoId: newCoCoId, companyId });
+
+      for (const id of added) {
+        await adminApi.assignCoco({ cocoId: id, companyId: assigningCompanyId });
       }
-      toast.success("Assignment updated");
+      
+      toast.success("Assignments updated successfully!");
+      setAssignDialogOpen(false);
       await fetchAll();
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to update assignment");
-      await fetchAll(); // revert
+      toast.error(err.message ?? "Assignment failed");
+      await fetchAll();
+    }
+  };
+
+  const handleRemoveOneCoco = async (companyId: string, cocoId: string) => {
+    try {
+      await adminApi.removeCoco({ cocoId, companyId });
+      toast.success("CoCo removed successfully");
+      await fetchAll();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to remove CoCo");
     }
   };
 
@@ -585,9 +644,22 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
 
               <div className="space-y-4">
                 {filteredCompanies.length > 0 ? (
-                  filteredCompanies.map((company) => (
-                    <div key={company.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex-1">
+                  filteredCompanies.map((company) => {
+                    const assignedCount = getCoCosAssignedToCompany(company.id).length;
+                    const requiredCount = company.requiredCocosCount || 1;
+                    
+                    let bgColorClass = "bg-gray-50 hover:bg-gray-100";
+                    if (assignedCount === 0) {
+                      bgColorClass = "bg-red-50 hover:bg-red-100 border border-red-200";
+                    } else if (assignedCount < requiredCount) {
+                      bgColorClass = "bg-yellow-50 hover:bg-yellow-100 border border-yellow-200";
+                    } else {
+                      bgColorClass = "bg-green-50 hover:bg-green-100 border border-green-200";
+                    }
+
+                    return (
+                    <div key={company.id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg transition-colors ${bgColorClass}`}>
+                      <div className="flex-1 w-full mb-4 sm:mb-0">
                         <div className="font-bold text-gray-900 mb-1">{company.name}</div>
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1.5">
@@ -621,7 +693,8 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
                         </Select>
                       </div>
                     </div>
-                  ))
+                  );
+                })
                 ) : (
                   <div className="py-12 text-center text-gray-500">
                     {showUnassignedOnly ? "No unassigned companies found." : companySearchQuery ? "No companies found matching your search." : "No companies available."}
@@ -632,6 +705,53 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
           </Card>
         </div>
       )}
+      {/* Assign CoCos Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign CoCos</DialogTitle>
+            <DialogDescription>
+              Please fulfill exactly {companies.find(c => c.id === assigningCompanyId)?.requiredCocosCount || 1} required CoCo slot(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedCocos.map((sc, idx) => (
+              <div key={idx} className="space-y-1">
+                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Slot {idx + 1}</Label>
+                <Select
+                  value={sc || "unassigned"}
+                  onValueChange={(val) => {
+                    const next = [...selectedCocos];
+                    next[idx] = val === "unassigned" ? "" : val;
+                    setSelectedCocos(next);
+                  }}
+                >
+                  <SelectTrigger>
+                     <SelectValue placeholder="Select a CoCo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="unassigned" className="text-gray-400 italic">Unassigned</SelectItem>
+                     {cocos.map(coco => {
+                        const isSelectedElsewhere = selectedCocos.some((v, i) => v === coco.id && i !== idx);
+                        // Prevent selecting the same Coco multiple times
+                        if (isSelectedElsewhere) return null;
+                        return (
+                          <SelectItem key={coco.id} value={coco.id}>
+                            {coco.name} {coco.instituteId ? `(${coco.instituteId})` : ""}
+                          </SelectItem>
+                        );
+                     })}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleConfirmAssignmentDialog}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -312,9 +312,9 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
     const completed = students.filter((s) => s.status === "completed").sort((a, b) => a.position - b.position);
 
     return (
-      <Card className="h-full flex flex-col bg-gray-50/30 border-0 shadow-sm ring-1 ring-gray-200">
-        <CardHeader className="bg-white border-b shrink-0 pb-4">
-          <CardTitle className="flex items-center justify-between text-lg">
+      <Card className="flex-1 min-h-0 min-w-[350px] overflow-hidden flex flex-col bg-gray-50/10 border shadow-sm ring-1 ring-gray-100 h-full">
+        <CardHeader className="bg-[#f8fafc] border-b shrink-0 py-3">
+          <CardTitle className="flex items-center justify-between text-base">
             <span className="font-bold text-gray-800">Round {round}</span>
             <Badge variant="secondary" className="bg-white border text-gray-700 font-medium px-3 flex items-center shadow-sm">
               <Users className="h-3 w-3 mr-1.5 text-gray-400" />
@@ -487,10 +487,12 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
         </Dialog>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 flex-1 overflow-hidden min-h-0 pl-1 pb-2 scroll-smooth">
-        {Array.from({ length: Math.min(totalRounds, 5) }, (_, i) => i + 1).map((round) => (
-          <div key={round} className="h-full min-h-0 flex flex-col">{renderRoundColumn(round)}</div>
-        ))}
+      <div className="flex flex-1 overflow-x-auto min-h-0 pt-2 pb-4 scroll-smooth">
+        <div className="flex flex-1 w-full gap-6">
+          {Array.from({ length: Math.min(totalRounds, 5) }, (_, i) => i + 1).map((round) => (
+            <div key={round} className="flex-1 h-full min-h-0 flex flex-col">{renderRoundColumn(round)}</div>
+          ))}
+        </div>
       </div>
     </div>
   );

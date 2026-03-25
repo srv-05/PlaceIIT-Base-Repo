@@ -16,6 +16,7 @@ const companySchema = new mongoose.Schema(
     isWalkInEnabled: { type: Boolean, default: false },
     currentRound: { type: Number, default: 1 },
     totalRounds: { type: Number, default: 3 },
+    requiredCocosCount: { type: Number, default: 1 },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

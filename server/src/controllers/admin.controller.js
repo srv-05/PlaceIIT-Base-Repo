@@ -334,6 +334,18 @@ const removeApc = async (req, res) => {
 const assignCoco = async (req, res) => {
   try {
     const { cocoId, companyId } = req.body;
+    
+    // Check if coco is already assigned to ANY company (other than this one maybe?)
+    const coco = await Coordinator.findById(cocoId);
+    if (!coco) return res.status(404).json({ message: "CoCo not found" });
+    
+    const otherCompanies = coco.assignedCompanies.filter(id => id.toString() !== companyId);
+    if (otherCompanies.length > 0) {
+      return res.status(400).json({ 
+        message: "This CoCo is already allocated to another company. Please remove them from the old company first." 
+      });
+    }
+
     await Coordinator.findByIdAndUpdate(cocoId, { $addToSet: { assignedCompanies: companyId } });
     await Company.findByIdAndUpdate(companyId, { $addToSet: { assignedCocos: cocoId } });
     res.json({ message: "CoCo assigned successfully" });
@@ -571,6 +583,11 @@ const autoAllocateCocos = async (req, res) => {
       return res.status(400).json({ message: "No companies available for allocation" });
     }
 
+    const totalRequiredCocos = companies.reduce((sum, c) => sum + (c.requiredCocosCount || 1), 0);
+    if (totalRequiredCocos > cocos.length) {
+      return res.status(400).json({ message: `Cannot auto allocate: ${totalRequiredCocos} CoCos are required in total but only ${cocos.length} are available.` });
+    }
+
     // Track global usage
     const usedCoCos = new Set();
     const cocoAssignments = {}; // cocoId -> array of {day, slot}
@@ -604,44 +621,55 @@ const autoAllocateCocos = async (req, res) => {
         continue;
       }
 
-      // Step 1: Get available Co-Cos NOT used globally AND NOT in same day/slot
-      let available = cocos.filter(c => 
-        !usedCoCos.has(c._id.toString()) && 
-        !isAssignedInSameDaySlot(c._id.toString(), day, slot)
-      );
+      const requiredCount = company.requiredCocosCount || 1;
+      let allocatedCount = 0;
 
-      // Step 4: If unused list is empty, allow reuse but still enforce day/slot
-      if (available.length === 0) {
-        console.log(`[AutoAllocate] Reusing Co-Co after all exhausted for company ${company.name}`);
-        available = cocos.filter(c => 
-          !isAssignedInSameDaySlot(c._id.toString(), day, slot)
+      for (let i = 0; i < requiredCount; i++) {
+        // Step 1: Get available Co-Cos NOT used globally AND NOT in same day/slot AND not already assigned to this company
+        let available = cocos.filter(c => 
+          !usedCoCos.has(c._id.toString()) && 
+          !isAssignedInSameDaySlot(c._id.toString(), day, slot) &&
+          !company.assignedCocos.includes(c._id)
         );
+
+        // Step 4: If unused list is empty, allow reuse but still enforce day/slot
+        if (available.length === 0) {
+          console.log(`[AutoAllocate] Reusing Co-Co after all exhausted for company ${company.name}`);
+          available = cocos.filter(c => 
+            !isAssignedInSameDaySlot(c._id.toString(), day, slot) &&
+            !company.assignedCocos.includes(c._id)
+          );
+        }
+
+        // Step 6: Randomly assign from available
+        if (available.length > 0) {
+          const selected = available[Math.floor(Math.random() * available.length)];
+          
+          usedCoCos.add(selected._id.toString());
+          cocoAssignments[selected._id.toString()].push({ day, slot });
+          company.assignedCocos.push(selected._id); // So we don't pick them again for the same company
+
+          // Execute DB writes
+          await Coordinator.findByIdAndUpdate(selected._id, {
+            $addToSet: { assignedCompanies: company._id }
+          });
+          await Company.findByIdAndUpdate(company._id, {
+            $addToSet: { assignedCocos: selected._id }
+          });
+
+          results.push({ company: company.name, coco: selected.name, day, slot });
+          allocatedCount++;
+        }
       }
 
-      // Step 6: Randomly assign from available
-      if (available.length > 0) {
-        const selected = available[Math.floor(Math.random() * available.length)];
-        
-        usedCoCos.add(selected._id.toString());
-        cocoAssignments[selected._id.toString()].push({ day, slot });
-
-        // Execute DB writes
-        await Coordinator.findByIdAndUpdate(selected._id, {
-          $addToSet: { assignedCompanies: company._id }
-        });
-        await Company.findByIdAndUpdate(company._id, {
-          $addToSet: { assignedCocos: selected._id }
-        });
-
-        results.push({ company: company.name, coco: selected.name, day, slot });
-      } else {
-        console.warn(`[AutoAllocate] No Co-Co available for company ${company.name} at Day ${day} Slot ${slot}`);
+      if (allocatedCount < requiredCount) {
+        console.warn(`[AutoAllocate] Only ${allocatedCount}/${requiredCount} Co-Cos available for company ${company.name} at Day ${day} Slot ${slot}`);
         unallottedCompanies.push({
           id: company._id,
           name: company.name,
           day,
           slot,
-          reason: "No Co-Co available (Day/Slot conflict)"
+          reason: `Only ${allocatedCount}/${requiredCount} Co-Cos available (Day/Slot conflict)`
         });
       }
     }

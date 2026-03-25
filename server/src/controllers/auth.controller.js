@@ -16,19 +16,22 @@ const login = async (req, res) => {
       return res.status(400).json({ message: "Institute ID and password are required" });
 
     const user = await User.findOne({ instituteId });
-    if (!user || !(await user.comparePassword(password)))
+    if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
-
-    // Enforce role-based access on backend
-    if (role && user.role !== role) {
-      const roleName = user.role.charAt(0).toUpperCase() + user.role.slice(1);
-      return res.status(401).json({ 
-        message: `Access denied. These credentials belong to a ${roleName} account.` 
-      });
     }
 
-    if (!user.isActive)
-      return res.status(403).json({ message: "Account is deactivated" });
+    if (!user.isActive) {
+      return res.status(403).json({ message: "This account is deactivated" });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (role && user.role !== role) {
+      return res.status(403).json({ message: "Access denied for this role" });
+    }
 
     user.lastLogin = new Date();
     await user.save();
@@ -38,7 +41,7 @@ const login = async (req, res) => {
     res.json({
       token,
       user: { 
-        id: user._id, 
+        id: user._id.toString(), 
         instituteId: user.instituteId, 
         role: user.role, 
         email: user.email,

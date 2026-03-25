@@ -27,6 +27,7 @@ import {
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { formatSlotLabel } from "@/app/lib/format";
 interface Company {
   id: string;
   name: string;
@@ -389,7 +390,7 @@ export function StudentDetailsPage({
                         <Clock className="h-4 w-4" />
                         <div>
                           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Slot</div>
-                          <div className="font-medium text-gray-900">{company.slot}</div>
+                          <div className="font-medium text-gray-900">{formatSlotLabel(company.slot)}</div>
                         </div>
                       </div>
 

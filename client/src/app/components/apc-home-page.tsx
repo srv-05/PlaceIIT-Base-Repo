@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { adminApi } from "@/app/lib/api";
 import { useSocket } from "@/app/socket-context";
+import { formatSlotLabel } from "@/app/lib/format";
 
 interface APCHomePageProps {
   userName: string;
@@ -56,7 +57,7 @@ export function APCHomePage({ userName, stats, onNavigate, isMainAdmin }: APCHom
       const items: ScheduleItem[] = companies.slice(0, 5).map((c: any, i: number) => ({
         id: c._id ?? String(i),
         company: c.name ?? "—",
-        time: c.slot ?? "—",
+        time: formatSlotLabel(c.slot),
         venue: c.venue ?? "TBA",
         candidates: c.shortlistedStudents?.length ?? 0,
         status: c.walkInOpen ? "ongoing" : "upcoming",

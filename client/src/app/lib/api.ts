@@ -187,6 +187,8 @@ export const cocoApi = {
         request("/coco/notifications"),
     markNotifRead: (id: string) =>
         request(`/coco/notifications/${id}/read`, { method: "PUT" }),
+    clearAllNotifications: () =>
+        request("/coco/notifications", { method: "DELETE" }),
     addPanel: (data: Record<string, unknown>) =>
         request("/coco/panel", { method: "POST", body: JSON.stringify(data) }),
     updatePanel: (panelId: string, data: Record<string, unknown>) =>

@@ -26,6 +26,7 @@ import {
 } from "@/app/components/ui/select";
 import { adminApi } from "@/app/lib/api";
 import { toast } from "sonner";
+import { formatSlotLabel } from "@/app/lib/format";
 
 interface CoCo {
   id: string;
@@ -102,7 +103,7 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
     id: raw._id ?? raw.id ?? "",
     name: raw.name ?? "—",
     day: raw.day != null ? `Day ${raw.day}` : "—",
-    slot: raw.slot ? raw.slot.charAt(0).toUpperCase() + raw.slot.slice(1) : "—",
+    slot: formatSlotLabel(raw.slot),
     venue: raw.venue ?? "Not Assigned",
     requiredCocosCount: raw.requiredCocosCount ?? 1,
   });
@@ -337,6 +338,14 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
 
   const getAssignedCoCoId = (companyId: string) =>
     assignments.find((a) => a.companyId === companyId)?.cocoId || "";
+
+  const isCocoBusy = (cocoId: string, day: string, slot: string) => {
+    const cocoAssignments = assignments
+      .filter((a) => a.cocoId === cocoId)
+      .map((a) => companies.find((c) => c.id === a.companyId))
+      .filter((c): c is Company => c !== undefined);
+    return cocoAssignments.some((c) => c.day === day && c.slot === slot);
+  };
 
   const handleCoCoCardClick = (coco: CoCo) => {
     onCoCoClick({
@@ -663,38 +672,25 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col sm:items-end gap-3 mt-4 sm:mt-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600 font-medium">Required CoCos:</span>
-                          <Select value={String(company.requiredCocosCount || 1)} onValueChange={(val) => handleUpdateRequiredCocosCount(company.id, parseInt(val))}>
-                            <SelectTrigger className="w-16 h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-center flex-wrap justify-end gap-2">
-                          <span className="text-sm text-gray-600 font-medium">Assigned:</span>
-                          {getCoCosAssignedToCompany(company.id).map(c => (
-                            <Badge key={c.id} variant="secondary" className="flex items-center gap-1">
-                              {c.name}
-                              <Trash2 
-                                className="h-3 w-3 ml-1 cursor-pointer text-gray-500 hover:text-red-500" 
-                                onClick={() => handleRemoveOneCoco(company.id, c.id)}
-                              />
-                            </Badge>
-                          ))}
-                          {getCoCosAssignedToCompany(company.id).length === 0 && (
-                            <span className="text-xs text-gray-400 italic">None</span>
-                          )}
-                        </div>
-                        <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => openAssignDialog(company.id)}>
-                          Manage Assignees
-                        </Button>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-600 font-medium">Assigned to:</span>
+                        <Select value={getAssignedCoCoId(company.id)} onValueChange={(value) => handleChangeAssignment(company.id, value)}>
+                          <SelectTrigger className="w-48">
+                            <SelectValue placeholder="Select CoCo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cocos.map((coco) => {
+                              const alreadyAssigned = isCocoBusy(coco.id, company.day, company.slot);
+                              const isCurrentAssignment = getAssignedCoCoId(company.id) === coco.id;
+                              const disabled = alreadyAssigned && !isCurrentAssignment;
+                              return (
+                                <SelectItem key={coco.id} value={coco.id} disabled={disabled}>
+                                  {coco.name} {coco.instituteId ? `(${coco.instituteId})` : ""} {disabled ? "(Busy)" : ""}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   );

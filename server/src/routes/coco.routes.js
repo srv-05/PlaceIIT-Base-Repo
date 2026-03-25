@@ -8,7 +8,7 @@ const {
   addPanel, getPanels, updatePanel, assignPanelStudent, clearPanel,
   getRounds, addRound, getPredefinedNotifications,
   searchAllStudents, addStudentToRound, uploadStudentsToRound,
-  getCocoNotifications, markNotifRead, addStudentToCompany,
+  getCocoNotifications, markNotifRead, clearAllNotifications, addStudentToCompany,
   promoteStudentsViaExcel,
 } = require("../controllers/coco.controller");
 const { getStudentCompanies } = require("../controllers/admin.controller");
@@ -28,6 +28,7 @@ router.post("/notify", sendNotification);
 router.get("/notifications/predefined", getPredefinedNotifications);
 router.get("/notifications", getCocoNotifications);
 router.put("/notifications/:id/read", markNotifRead);
+router.delete("/notifications", clearAllNotifications);
 router.post("/panel", addPanel);
 router.put("/panel/:id", updatePanel);
 router.put("/panel/:id/assign", assignPanelStudent);

@@ -2,6 +2,7 @@ import { adminApi } from "@/app/lib/api";
 import { toast } from "sonner";
 import { useSocket } from "@/app/socket-context";
 import { useState, useEffect, useCallback } from "react";
+import { formatSlotLabel } from "@/app/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -205,7 +206,7 @@ export function CompanyDetailsPage({
               <Clock className="h-5 w-5 text-indigo-600 mt-0.5" />
               <div>
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Slot</div>
-                <div className="font-semibold text-gray-900">{slot}</div>
+                <div className="font-semibold text-gray-900">{formatSlotLabel(slot)}</div>
               </div>
             </div>
             

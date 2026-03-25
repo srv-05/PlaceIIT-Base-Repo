@@ -196,7 +196,7 @@ const assignPanelStudent = async (req, res) => {
     panel.currentStudent = studentId;
     await panel.save();
 
-    let queueEntry = await Queue.findOne({ studentId, companyId: panel.companyId, roundId: panel.roundId });
+    let queueEntry = await Queue.findOne({ studentId, companyId: panel.companyId }).sort({ createdAt: -1 });
     if (queueEntry) {
       queueEntry.status = "in_interview";
       queueEntry.panelId = panel._id;
@@ -222,7 +222,7 @@ const clearPanel = async (req, res) => {
     if (!panel) return res.status(404).json({ message: "Panel not found" });
 
     if (panel.currentStudent) {
-      let queueEntry = await Queue.findOne({ studentId: panel.currentStudent, companyId: panel.companyId, roundId: panel.roundId });
+      let queueEntry = await Queue.findOne({ studentId: panel.currentStudent, companyId: panel.companyId }).sort({ createdAt: -1 });
       if (queueEntry) {
         queueEntry.status = "completed";
         queueEntry.completedAt = new Date();
@@ -425,7 +425,11 @@ const getPredefinedNotifications = async (req, res) => {
 const Notification = require("../models/Notification.model");
 const getCocoNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipientId: req.user.id })
+    const notifications = await Notification.find({ 
+      recipientId: req.user.id,
+      source: { $in: ["student", "apc"] }
+    })
+      .populate("senderId", "name rollNumber")
       .populate("companyId", "name")
       .sort({ createdAt: -1 })
       .limit(50);
@@ -446,6 +450,20 @@ const markNotifRead = async (req, res) => {
     );
     if (!notif) return res.status(404).json({ message: "Notification not found" });
     res.json(notif);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Clear all notifications for CoCo
+// @route   DELETE /api/coco/notifications
+const clearAllNotifications = async (req, res) => {
+  try {
+    await Notification.deleteMany({ 
+      recipientId: req.user.id,
+      source: { $in: ["student", "apc"] }
+    });
+    res.json({ message: "Notifications cleared" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -608,6 +626,6 @@ module.exports = {
   addPanel, getPanels, updatePanel, assignPanelStudent, clearPanel,
   getRounds, addRound, getPredefinedNotifications,
   searchAllStudents, addStudentToRound, uploadStudentsToRound,
-  getCocoNotifications, markNotifRead, addStudentToCompany,
+  getCocoNotifications, markNotifRead, clearAllNotifications, addStudentToCompany,
   promoteStudentsViaExcel,
 };

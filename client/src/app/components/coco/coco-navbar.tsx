@@ -6,6 +6,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/app/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/app/components/ui/sheet";
+import { CoCoNotificationsPage } from "./coco-notifications-page";
 
 interface CoCoNavbarProps {
   onNavigate: (page: string) => void;
@@ -54,17 +62,31 @@ export function CoCoNavbar({ onNavigate, userName, unreadNotifications = 0 }: Co
           {/* User Actions */}
           <div className="flex items-center space-x-3">
             {/* Notification Bell */}
-            <button 
-              className="h-9 w-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors cursor-pointer border-0 outline-none relative"
-              onClick={() => onNavigate("notifications")}
-            >
-              <Bell className="h-5 w-5 text-green-600" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
-                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                </span>
-              )}
-            </button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <button 
+                  className="h-9 w-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors cursor-pointer border-0 outline-none relative"
+                >
+                  <Bell className="h-5 w-5 text-green-600" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                    </span>
+                  )}
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[400px] sm:w-[500px]">
+                <SheetHeader className="mb-4 text-left">
+                  <SheetTitle className="text-2xl font-bold flex items-center">
+                    <Bell className="h-6 w-6 mr-2 text-green-600" />
+                    Notifications
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="h-[calc(100vh-100px)] overflow-y-auto">
+                  <CoCoNotificationsPage />
+                </div>
+              </SheetContent>
+            </Sheet>
 
             {/* Profile Dropdown */}
             <DropdownMenu>

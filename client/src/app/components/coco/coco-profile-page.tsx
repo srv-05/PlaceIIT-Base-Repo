@@ -7,6 +7,7 @@ import { User, Mail, Phone, Building2, Calendar, Edit, Loader2, Save } from "luc
 import { useState, useEffect, useCallback } from "react";
 import { authApi, cocoApi } from "@/app/lib/api";
 import { toast } from "sonner";
+import { formatSlotLabel } from "@/app/lib/format";
 
 export function CoCoProfilePage({ userId }: { userId: string }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -45,7 +46,7 @@ export function CoCoProfilePage({ userId }: { userId: string }) {
         companies.map((c: any) => ({
           name: c.name ?? "—",
           day: c.day != null ? `Day ${c.day}` : "—",
-          slot: c.slot ?? "—",
+          slot: formatSlotLabel(c.slot),
         }))
       );
     } catch {

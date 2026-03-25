@@ -5,6 +5,7 @@ import { Button } from "@/app/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Building2, MapPin, Clock, Users, Calendar, ChevronDown, Loader2 } from "lucide-react";
 import { cocoApi } from "@/app/lib/api";
+import { formatSlotLabel } from "@/app/lib/format";
 
 interface Company {
   id: string;
@@ -29,7 +30,7 @@ export function CoCoMyCompaniesPage({ onCompanySelect }: { onCompanySelect: (com
     role: raw.role ?? "",
     venue: raw.venue ?? "TBA",
     day: raw.day != null ? `Day ${raw.day}` : "—",
-    slot: raw.slot ?? "—",
+    slot: formatSlotLabel(raw.slot),
     studentsShortlisted: raw.shortlistedStudents?.length ?? 0,
     date: raw.interviewDate ?? "",
   });
@@ -121,7 +122,7 @@ export function CoCoMyCompaniesPage({ onCompanySelect }: { onCompanySelect: (com
             <div key={slot} className="mb-6">
               <div className="flex items-center mb-3 ml-7">
                 <Clock className="h-4 w-4 mr-2 text-gray-600" />
-                <h3 className="text-lg font-medium text-gray-700">{slot} Slot</h3>
+                <h3 className="text-lg font-medium text-gray-700">{slot}</h3>
                 <ChevronDown className="h-4 w-4 ml-1 text-gray-400" />
               </div>
 

@@ -206,10 +206,11 @@ const assignPanelStudent = async (req, res) => {
     
     const { getIO } = require("../config/socket");
     const io = getIO();
-    if (io) io.to(panel.companyId.toString()).emit("queue:updated");
+    if (io) io.to(`company:${panel.companyId.toString()}`).emit("queue:updated");
 
     res.json(panel);
   } catch (err) {
+    console.error("[assignPanelStudent] Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -236,10 +237,11 @@ const clearPanel = async (req, res) => {
 
     const { getIO } = require("../config/socket");
     const io = getIO();
-    if (io) io.to(panel.companyId.toString()).emit("queue:updated");
+    if (io) io.to(`company:${panel.companyId.toString()}`).emit("queue:updated");
 
     res.json(panel);
   } catch (err) {
+    console.error("[clearPanel] Error:", err);
     res.status(500).json({ message: err.message });
   }
 };

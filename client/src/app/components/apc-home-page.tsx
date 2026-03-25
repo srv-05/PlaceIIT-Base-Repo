@@ -221,6 +221,14 @@ export function APCHomePage({ userName, stats, onNavigate, isMainAdmin }: APCHom
             <Button
               variant="outline"
               className="h-auto py-4 flex-col gap-2 bg-white hover:bg-indigo-50 hover:border-indigo-300"
+              onClick={() => onNavigate("queries")}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-amber-600"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+              <span className="text-sm font-medium">Student Queries</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex-col gap-2 bg-white hover:bg-indigo-50 hover:border-indigo-300"
               onClick={() => onNavigate("profile")}
             >
               <User className="h-6 w-6 text-blue-600" />

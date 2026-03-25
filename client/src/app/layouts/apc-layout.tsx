@@ -23,6 +23,9 @@ export function APCLayout() {
             case "manage-companies":
                 navigate("/apc/companies");
                 break;
+            case "queries":
+                navigate("/apc/queries");
+                break;
             case "profile":
                 navigate("/apc/profile");
                 break;

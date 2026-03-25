@@ -732,10 +732,77 @@ const getCocoConflicts = async (req, res) => {
   }
 };
 
+// @desc    Get all student queries
+// @route   GET /api/admin/queries
+const getQueries = async (req, res) => {
+  try {
+    const Query = require("../models/Query.model");
+    const queries = await Query.find()
+      .populate("studentUserId", "instituteId email")
+      .sort({ createdAt: -1 });
+
+    // Try to attach student details if available
+    const Student = require("../models/Student.model");
+    const result = await Promise.all(
+      queries.map(async (q) => {
+        const queryObj = q.toObject();
+        const student = await Student.findOne({ userId: q.studentUserId?._id });
+        if (student) {
+          queryObj.studentName = student.name;
+          queryObj.studentRollNo = student.rollNumber;
+        } else {
+          queryObj.studentName = "Unknown";
+          queryObj.studentRollNo = q.studentUserId?.instituteId || "Unknown";
+        }
+        return queryObj;
+      })
+    );
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Respond to a student query
+// @route   PUT /api/admin/queries/:id
+const respondToQuery = async (req, res) => {
+  try {
+    const { response, status } = req.body;
+    const Query = require("../models/Query.model");
+    
+    if (!response && status !== "resolved") {
+      return res.status(400).json({ message: "Response is required" });
+    }
+
+    const query = await Query.findByIdAndUpdate(
+      req.params.id,
+      { response, status },
+      { new: true }
+    );
+
+    if (!query) return res.status(404).json({ message: "Query not found" });
+
+    // Optional: Send real-time notification to the student
+    const notificationService = require("../services/notification.service");
+    await notificationService.sendNotification({
+      recipientId: query.studentUserId,
+      senderId: req.user.id,
+      message: `Your query regarding "${query.subject}" has been updated to ${status}.`,
+      type: "general",
+    });
+
+    res.json(query);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getStats, getCompanies, addCompany, updateCompany,
   searchStudents, getStudentCompanies, getCocos, addCoco, addStudent, getApcs, addApc, removeApc,
   assignCoco, removeCoco,
   uploadCompanyExcel, uploadShortlistExcel, uploadCocoExcel, uploadApcExcel, uploadStudentExcel, uploadCocoRequirementsExcel, getUploadStatus,
-  shortlistStudents, getShortlistedStudents, autoAllocateCocos, getCocoConflicts
+  shortlistStudents, getShortlistedStudents, autoAllocateCocos, getCocoConflicts,
+  getQueries, respondToQuery
 };

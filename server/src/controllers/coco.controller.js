@@ -171,9 +171,9 @@ const updatePanel = async (req, res) => {
     if (resolvedRoundId !== undefined) updateData.roundId = resolvedRoundId;
     if (venue !== undefined) updateData.venue = venue;
     if (status !== undefined) updateData.status = status;
-    
+
     const panel = await Panel.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    
+
     const { getIO } = require("../config/socket");
     const io = getIO();
     if (io && panel) io.to(panel.companyId.toString()).emit("status:updated");
@@ -203,7 +203,7 @@ const assignPanelStudent = async (req, res) => {
       queueEntry.interviewStartedAt = new Date();
       await queueEntry.save();
     }
-    
+
     const { getIO } = require("../config/socket");
     const io = getIO();
     if (io) io.to(panel.companyId.toString()).emit("queue:updated");

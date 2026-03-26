@@ -23,7 +23,7 @@ async function run() {
     };
 
     try {
-        const res = await fetch("http://localhost:5000/api/admin/students", {
+        const res = await fetch("http://localhost:5001/api/admin/students", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

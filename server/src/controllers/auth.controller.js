@@ -209,12 +209,12 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// @desc    Change password (used for forced reset on first login)
+// @desc    Change password (profile change or forced reset on first login)
 // @route   POST /api/auth/change-password
 // @access  Private
 const changePassword = async (req, res) => {
   try {
-    const { newPassword, emergencyContact, friendContact } = req.body;
+    const { newPassword, currentPassword, emergencyContact, friendContact } = req.body;
 
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
@@ -225,7 +225,7 @@ const changePassword = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (user.role === ROLES.STUDENT) {
+    if (user.role === ROLES.STUDENT && emergencyContact && friendContact) {
       const emergencyName = emergencyContact?.name?.trim();
       const emergencyPhone = emergencyContact?.phone?.trim();
       const friendName = friendContact?.name?.trim();
@@ -253,6 +253,19 @@ const changePassword = async (req, res) => {
           profileCompleted: true,
         }
       );
+    }
+
+    // If currentPassword is provided, verify it (profile change flow)
+    if (currentPassword) {
+      const isMatch = await user.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+      // Reject if new password is same as current
+      const isSame = await user.comparePassword(newPassword);
+      if (isSame) {
+        return res.status(400).json({ message: "New password must be different from your current password" });
+      }
     }
 
     user.password = newPassword;

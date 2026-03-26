@@ -3,7 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Badge } from "@/app/components/ui/badge";
-import { User, Mail, Phone, Building2, Calendar, Edit, Loader2, Save } from "lucide-react";
+import { User, Mail, Phone, Building2, Calendar, Edit, Loader2, Save, Lock } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { authApi, cocoApi } from "@/app/lib/api";
 import { toast } from "sonner";
@@ -13,6 +13,12 @@ export function CoCoProfilePage({ userId }: { userId: string }) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Change Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [profileData, setProfileData] = useState({
     name: "",
@@ -158,6 +164,53 @@ export function CoCoProfilePage({ userId }: { userId: string }) {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Change Password */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center"><Lock className="h-5 w-5 mr-2 text-gray-600" />Change Password</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cocoCurrentPassword">Current Password</Label>
+              <Input id="cocoCurrentPassword" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Enter current password" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cocoNewPassword">New Password</Label>
+              <Input id="cocoNewPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 6 characters" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cocoConfirmPassword">Confirm New Password</Label>
+              <Input id="cocoConfirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter new password" />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+              onClick={async () => {
+                if (newPassword !== confirmPassword) { toast.error("New passwords do not match"); return; }
+                if (newPassword === currentPassword) { toast.error("New password must be different from your current password"); return; }
+                if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+                setChangingPassword(true);
+                try {
+                  await authApi.changePassword(newPassword, currentPassword);
+                  toast.success("Password changed successfully!");
+                  setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+                } catch (err: any) {
+                  toast.error(err.message ?? "Failed to change password");
+                } finally {
+                  setChangingPassword(false);
+                }
+              }}
+            >
+              {changingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Update Password
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

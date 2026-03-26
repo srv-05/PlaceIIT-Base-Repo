@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { studentApi } from "@/app/lib/api";
 import { useSocket } from "@/app/socket-context";
 import { toast } from "sonner";
+import { useEffect as useDriveEffect } from "react";
 
 interface Company {
   id: string;
@@ -52,11 +53,15 @@ export function StudentMyCompaniesPage() {
   const { socket } = useSocket();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDay, setSelectedDay] = useState("all");
-  const [selectedRound, setSelectedRound] = useState("all");
+  const [selectedSlot, setSelectedSlot] = useState("all");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   // companyId-round currently being actioned (shows spinner)
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // ── Active Drive State ──
+  const [driveDay, setDriveDay] = useState<number | null>(null);
+  const [driveSlot, setDriveSlot] = useState<string | null>(null);
 
   // Queue switch confirmation modal
   const [switchModal, setSwitchModal] = useState<{
@@ -100,15 +105,28 @@ export function StudentMyCompaniesPage() {
 
   useEffect(() => { fetchCompanies(); }, [fetchCompanies]);
 
+  // ── Fetch drive state on mount ──
+  useDriveEffect(() => {
+    studentApi.getDriveState().then((ds: any) => {
+      if (ds) { setDriveDay(ds.currentDay ?? null); setDriveSlot(ds.currentSlot ?? null); }
+    }).catch(() => {});
+  }, []);
+
   // Real-time refresh when status changes (COCO accepts/rejects)
   useEffect(() => {
     if (!socket) return;
     const refresh = () => fetchCompanies();
     socket.on("status:updated", refresh);
     socket.on("queue:updated", refresh);
+    // Listen for drive state updates
+    const handleDriveUpdate = (ds: any) => {
+      if (ds) { setDriveDay(ds.currentDay ?? null); setDriveSlot(ds.currentSlot ?? null); }
+    };
+    socket.on("driveState:updated", handleDriveUpdate);
     return () => {
       socket.off("status:updated", refresh);
       socket.off("queue:updated", refresh);
+      socket.off("driveState:updated", handleDriveUpdate);
     };
   }, [socket, fetchCompanies]);
 
@@ -196,15 +214,12 @@ export function StudentMyCompaniesPage() {
 
   /* ─── Filters ─── */
   const uniqueDays = [...new Set(companies.map(c => c.day))].filter(Boolean);
-  const uniqueRounds = [...new Set(companies.map(c => c.round))]
-    .filter(Boolean).sort((a, b) => a.localeCompare(b));
-
   const filtered = companies.filter(c => {
     const q = searchQuery.toLowerCase();
     return (
-      (c.name.toLowerCase().includes(q) || c.day.toLowerCase().includes(q) || c.round.toLowerCase().includes(q)) &&
+      (c.name.toLowerCase().includes(q) || c.day.toLowerCase().includes(q) || (c.slot && c.slot.toLowerCase().includes(q))) &&
       (selectedDay === "all" || c.day === selectedDay) &&
-      (selectedRound === "all" || c.round === selectedRound)
+      (selectedSlot === "all" || (c.slot && c.slot.toLowerCase() === selectedSlot))
     );
   });
 
@@ -236,6 +251,16 @@ export function StudentMyCompaniesPage() {
     const s = company.queueStatus;
 
     if (CAN_JOIN.includes(s)) {
+      // STRICT: Only show Join Queue if BOTH day AND slot match active drive state
+      // If drive state is not loaded yet, hide the button (fail-safe)
+      if (driveDay == null || !driveSlot) return null;
+
+      const companyDayNum = parseInt(company.day.replace("Day ", ""), 10);
+      const isActiveDay = !isNaN(companyDayNum) && companyDayNum === driveDay;
+      const isActiveSlot = company.slot.toLowerCase() === driveSlot.toLowerCase();
+
+      if (!isActiveDay || !isActiveSlot) return null;
+
       return (
         <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[110px]"
           onClick={() => handleJoinQueue(company)} disabled={busy}>
@@ -407,7 +432,7 @@ export function StudentMyCompaniesPage() {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input placeholder="Search by company name, day or round…" value={searchQuery}
+              <Input placeholder="Search by company name, day or slot…" value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
             </div>
             <Select value={selectedDay} onValueChange={setSelectedDay}>
@@ -417,11 +442,12 @@ export function StudentMyCompaniesPage() {
                 {uniqueDays.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={selectedRound} onValueChange={setSelectedRound}>
-              <SelectTrigger className="w-full md:w-48"><SelectValue placeholder="All Rounds" /></SelectTrigger>
+            <Select value={selectedSlot} onValueChange={setSelectedSlot}>
+              <SelectTrigger className="w-full md:w-48"><SelectValue placeholder="All Slots" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Rounds</SelectItem>
-                {uniqueRounds.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                <SelectItem value="all">All Slots</SelectItem>
+                <SelectItem value="morning">Morning</SelectItem>
+                <SelectItem value="afternoon">Afternoon</SelectItem>
               </SelectContent>
             </Select>
           </div>

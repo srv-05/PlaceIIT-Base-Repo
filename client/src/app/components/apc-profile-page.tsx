@@ -53,7 +53,7 @@ export function APCProfilePage({ userName, userId }: APCProfilePageProps) {
     setIsEditingProfile(false);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
     setPasswordSuccess(false);
@@ -69,17 +69,26 @@ export function APCProfilePage({ userName, userId }: APCProfilePageProps) {
       return;
     }
 
-    // In real app, verify current password and update via API
-    toast.success("Password changed successfully!");
-    setPasswordSuccess(true);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    if (newPassword === currentPassword) {
+      setPasswordError("New password must be different from your current password");
+      return;
+    }
 
-    setTimeout(() => {
-      setPasswordSuccess(false);
-      setIsChangingPassword(false);
-    }, 2000);
+    try {
+      await authApi.changePassword(newPassword, currentPassword);
+      toast.success("Password changed successfully!");
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setTimeout(() => {
+        setPasswordSuccess(false);
+        setIsChangingPassword(false);
+      }, 2000);
+    } catch (err: any) {
+      setPasswordError(err.message ?? "Failed to change password");
+    }
   };
 
   return (

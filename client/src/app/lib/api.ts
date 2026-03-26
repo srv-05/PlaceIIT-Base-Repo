@@ -89,6 +89,7 @@ export const authApi = {
 
     changePassword: (
         newPassword: string,
+        currentPassword?: string,
         profileData?: {
             emergencyContact: { name: string; phone: string };
             friendContact: { name: string; phone: string };
@@ -96,7 +97,7 @@ export const authApi = {
     ) =>
         request<{ message: string; user: any }>("/auth/change-password", {
             method: "POST",
-            body: JSON.stringify({ newPassword, ...profileData }),
+            body: JSON.stringify({ newPassword, currentPassword, ...profileData }),
         }),
 
     forgotPassword: {

@@ -21,6 +21,7 @@ interface AuthState {
     userId: string;
     userName: string;
     token: string | null;
+    isMainAdmin: boolean;
     login: (instituteId: string, password: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
     /** Whether the user is required to change their password */
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [userName, setUserName] = useState("");
     const [token, setTokenState] = useState<string | null>(null);
     const [userMustChangePassword, setUserMustChangePassword] = useState(false);
+    const [isMainAdmin, setIsMainAdmin] = useState(false);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
     const [cocoUnreadNotificationsCount, setCocoUnreadNotificationsCount] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setUserId(user._id);
                     setUserName(user.instituteId);
                     setUserMustChangePassword(!!user.mustChangePassword);
+                    setIsMainAdmin(!!user.isMainAdmin);
                     setIsLoggedIn(true);
                 })
                 .catch(() => {
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUserId(res.user.id);
             setUserName(res.user.instituteId);
             setUserMustChangePassword(!!res.user.mustChangePassword);
+            setIsMainAdmin(!!res.user.isMainAdmin);
             setIsLoggedIn(true);
             return { success: true };
         } catch (err: unknown) {
@@ -112,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserId("");
         setUserName("");
         setUserMustChangePassword(false);
+        setIsMainAdmin(false);
         setUnreadNotificationsCount(0);
         setCocoUnreadNotificationsCount(0);
     };
@@ -132,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 userId,
                 userName,
                 token,
+                isMainAdmin,
                 login,
                 logout,
                 userMustChangePassword,

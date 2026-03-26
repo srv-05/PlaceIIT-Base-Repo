@@ -20,6 +20,9 @@ export function APCLayout() {
             case "manage-companies":
                 navigate("/apc/companies");
                 break;
+            case "manage-apcs":
+                navigate("/apc/apcs");
+                break;
             case "queries":
                 navigate("/apc/queries");
                 break;
@@ -37,7 +40,7 @@ export function APCLayout() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <APCNavbar onNavigate={handleNavigate} userName={auth.userName} />
+            <APCNavbar onNavigate={handleNavigate} userName={auth.userName} isMainAdmin={auth.isMainAdmin} />
             <main className="container mx-auto px-8 py-10">
                 <Outlet />
             </main>

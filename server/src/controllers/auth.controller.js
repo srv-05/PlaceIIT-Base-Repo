@@ -33,8 +33,8 @@ const login = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this role" });
     }
 
-    user.lastLogin = new Date();
-    await user.save();
+    // Use updateOne to bypass pre-save hook (avoids accidental password re-hashing)
+    await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
 
     const token = generateToken({ id: user._id, role: user.role });
 
@@ -127,9 +127,8 @@ const sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    user.otpCode = otp;
-    user.otpExpiry = expiry;
-    await user.save();
+    // Use updateOne to bypass pre-save hook (avoid re-hashing password)
+    await User.updateOne({ _id: user._id }, { otpCode: otp, otpExpiry: expiry });
 
     await sendOtpEmail(user.email, otp);
 

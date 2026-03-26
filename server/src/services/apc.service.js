@@ -40,7 +40,7 @@ const createApc = async (data) => {
     instituteId,
     email: finalEmail,
     password: finalPassword,
-    role: "apc",
+    role: "admin",
     mustChangePassword: true,
   });
 

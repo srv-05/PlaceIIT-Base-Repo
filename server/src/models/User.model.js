@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
     otpCode: { type: String },
     otpExpiry: { type: Date },
     mustChangePassword: { type: Boolean, default: false },
+    isMainAdmin: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

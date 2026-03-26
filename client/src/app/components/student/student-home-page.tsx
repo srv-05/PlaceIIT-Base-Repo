@@ -10,7 +10,7 @@ import {
 
 import {
   Search, Building2, MapPin, Clock, Users, CheckCircle,
-  AlertCircle, Loader2, Mic, LogIn, LogOut, Clock3, XCircle
+  AlertCircle, Loader2, Mic, LogIn, LogOut, Clock3, XCircle, Flag
 } from "lucide-react";
 import {
   AlertDialog,
@@ -46,7 +46,7 @@ interface Company {
 }
 
 const CAN_JOIN = [null, "not_joined", "exited", "rejected", "upcoming"];
-const CAN_EXIT = ["in_queue", "in-queue", "in_interview"];
+const CAN_EXIT = ["in_queue", "in-queue", "in_interview", "on_hold"];
 
 export function StudentHomePage() {
   const { socket } = useSocket();
@@ -230,7 +230,8 @@ export function StudentHomePage() {
     switch (status) {
       case "pending": return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock3 className="h-3 w-3 mr-1" />Requested</Badge>;
       case "in_queue":
-      case "in-queue": return <Badge className="bg-blue-100 text-blue-800 border-blue-200"><Users className="h-3 w-3 mr-1" />In Queue</Badge>;
+      case "in-queue":
+      case "on_hold": return <Badge className="bg-blue-100 text-blue-800 border-blue-200"><Users className="h-3 w-3 mr-1" />In Queue</Badge>;
       case "in_interview": return <Badge className="bg-orange-100 text-orange-800 border-orange-200"><Mic className="h-3 w-3 mr-1" />Interviewing</Badge>;
       case "completed":
       case "offer_given": return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
@@ -244,7 +245,8 @@ export function StudentHomePage() {
     switch (status) {
       case "pending": return "border-yellow-300 bg-yellow-50/40 shadow-sm";
       case "in_queue":
-      case "in-queue": return "border-blue-300 bg-blue-50/40 shadow-sm";
+      case "in-queue":
+      case "on_hold": return "border-blue-300 bg-blue-50/40 shadow-sm";
       case "in_interview": return "border-orange-300 bg-orange-50/30 shadow-sm";
       case "completed":
       case "offer_given": return "border-green-300 bg-green-50/30 shadow-sm";
@@ -320,7 +322,7 @@ export function StudentHomePage() {
                   </AlertDialog>
                 </div>
               )}
-              {(s === "in_queue" || s === "in-queue") && (
+              {(s === "in_queue" || s === "in-queue" || s === "on_hold") && (
                 <div className="flex items-center gap-3">
                   <div className="flex flex-col items-center bg-blue-50 border border-blue-200 rounded-md px-3 py-1 mr-2">
                     <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">Position</span>
@@ -398,6 +400,7 @@ export function StudentHomePage() {
     (selectedRound === "all" || c.round === selectedRound)
   ));
   const uniqueRounds = [...new Set([...companies, ...walkinCompanies].map((c) => c.round))].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  const flaggedCompanies = [...companies, ...walkinCompanies].filter(c => c.queueStatus === "on_hold");
 
   if (loading) {
     return (
@@ -409,6 +412,18 @@ export function StudentHomePage() {
 
   return (
     <div className="space-y-6">
+      {flaggedCompanies.length > 0 && (
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-start gap-3 shadow-sm">
+          <AlertCircle className="h-6 w-6 text-red-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-red-800 font-bold text-lg mb-1">Queue Action Required: You have been flagged!</h3>
+            <p className="text-red-700">
+              The coordinator has flagged your absence for: <strong>{flaggedCompanies.map(c => c.name).join(", ")}</strong>. Please report to the venue immediately.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
           <Building2 className="h-6 w-6 text-indigo-600" />

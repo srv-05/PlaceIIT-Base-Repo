@@ -9,7 +9,7 @@ import {
 } from "@/app/components/ui/dialog";
 import {
   Building2, MapPin, Clock, CheckCircle, AlertCircle, Calendar,
-  Search, Loader2, Users, Mic, LogIn, LogOut, Clock3, XCircle,
+  Search, Loader2, Users, Mic, LogIn, LogOut, Clock3, XCircle, Flag,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -46,7 +46,7 @@ interface Company {
 // Statuses that allow clicking Join Queue
 const CAN_JOIN = [null, "not_joined", "exited", "rejected"];
 // Statuses that show Exit Queue button
-const CAN_EXIT = ["in_queue", "in_interview"];
+const CAN_EXIT = ["in_queue", "in_interview", "on_hold"];
 
 export function StudentMyCompaniesPage() {
   const { socket } = useSocket();
@@ -214,6 +214,7 @@ export function StudentMyCompaniesPage() {
       case "pending":
         return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock3 className="h-3 w-3 mr-1" />Requested</Badge>;
       case "in_queue":
+      case "on_hold":
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200"><Users className="h-3 w-3 mr-1" />In Queue</Badge>;
       case "in_interview":
         return <Badge className="bg-orange-100 text-orange-800 border-orange-200"><Mic className="h-3 w-3 mr-1" />Interviewing</Badge>;
@@ -275,7 +276,7 @@ export function StudentMyCompaniesPage() {
         </div>
       );
     }
-    if (s === "in_queue") {
+    if (s === "in_queue" || s === "on_hold") {
       return (
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-center bg-blue-50 border border-blue-200 rounded-md px-3 py-1 mr-2">
@@ -353,6 +354,7 @@ export function StudentMyCompaniesPage() {
       case "pending":
         return "border-yellow-300 bg-yellow-50/40 shadow-sm";
       case "in_queue":
+      case "on_hold":
         return "border-blue-300 bg-blue-50/40 shadow-sm";
       case "in_interview":
         return "border-orange-300 bg-orange-50/30 shadow-sm";
@@ -372,8 +374,22 @@ export function StudentMyCompaniesPage() {
     );
   }
 
+  const flaggedCompanies = companies.filter(c => c.queueStatus === "on_hold");
+
   return (
     <div className="space-y-6">
+      {flaggedCompanies.length > 0 && (
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-start gap-3 shadow-sm">
+          <AlertCircle className="h-6 w-6 text-red-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-red-800 font-bold text-lg mb-1">Queue Action Required: You have been flagged!</h3>
+            <p className="text-red-700">
+              The coordinator has flagged your absence for: <strong>{flaggedCompanies.map(c => c.name).join(", ")}</strong>. Please report to the venue immediately.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center">

@@ -204,8 +204,16 @@ const acceptQueueRequest = async (studentId, companyId, round = "Round 1") => {
   // Resolve active Round
   const company = await Company.findById(companyId);
   const currentRoundNum = company?.currentRound || 1;
-  const activeRound = await InterviewRound.findOne({ companyId, roundNumber: currentRoundNum });
-  if (activeRound) entry.roundId = activeRound._id;
+  let activeRound = await InterviewRound.findOne({ companyId, roundNumber: currentRoundNum });
+  if (!activeRound) {
+    activeRound = await InterviewRound.create({
+      companyId,
+      roundNumber: currentRoundNum,
+      roundName: `Round ${currentRoundNum}`,
+    });
+  }
+  entry.roundId = activeRound._id;
+  entry.round = activeRound.roundName || `Round ${activeRound.roundNumber}`;
 
   // Assign position
   const lastEntry = await Queue.findOne({
@@ -216,6 +224,14 @@ const acceptQueueRequest = async (studentId, companyId, round = "Round 1") => {
   entry.position = (lastEntry?.position || 0) + 1;
   entry.status = STUDENT_STATUS.IN_QUEUE;
   await entry.save();
+
+  // Accepted students must become visible in company/student datasets.
+  await Company.findByIdAndUpdate(companyId, {
+    $addToSet: { shortlistedStudents: studentId },
+  });
+  await Student.findByIdAndUpdate(studentId, {
+    $addToSet: { shortlistedCompanies: companyId },
+  });
 
   const studentDoc = await Student.findById(studentId);
   safeEmitTo(`company:${companyId}`, SOCKET_EVENTS.QUEUE_UPDATED, {

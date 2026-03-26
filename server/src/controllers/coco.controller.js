@@ -258,6 +258,7 @@ const getRounds = async (req, res) => {
       const fallbackRoundStr = `Round ${round.roundNumber}`;
       const queueEntries = await Queue.find({
         companyId: req.params.companyId,
+        status: { $ne: "pending" },
         $or: [
           { roundId: round._id },
           { round: roundNameStr },

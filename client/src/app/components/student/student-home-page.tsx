@@ -418,7 +418,7 @@ export function StudentHomePage() {
           <div className="flex-1">
             <h3 className="text-red-800 font-bold text-lg mb-1">Queue Action Required: You have been flagged!</h3>
             <p className="text-red-700">
-              The coordinator has flagged your absence for: <strong>{flaggedCompanies.map(c => c.name).join(", ")}</strong>. Please report to the venue immediately or exit the queue to allow others to proceed.
+              The coordinator has flagged your absence for: <strong>{flaggedCompanies.map(c => c.name).join(", ")}</strong>. Please report to the venue immediately.
             </p>
           </div>
         </div>

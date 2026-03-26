@@ -104,6 +104,11 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [selectedStudentForNotification, setSelectedStudentForNotification] = useState<Student | null>(null);
   const [notifyLoading, setNotifyLoading] = useState(false);
+  const [forceActionStudent, setForceActionStudent] = useState<Student | null>(null);
+  const [forceActionType, setForceActionType] = useState<"in-queue" | "in-interview" | null>(null);
+  const [forceRoundSelection, setForceRoundSelection] = useState("1");
+  const [forcePanelSelection, setForcePanelSelection] = useState("");
+  const [forceActionLoading, setForceActionLoading] = useState(false);
 
   const PREDEFINED_MESSAGES = [
     "Please report to our interview panel right now.",
@@ -114,6 +119,22 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
     "Please bring a hard copy of your resume to the panel.",
     "Your interview is over for today. Thank you.",
   ];
+
+  const deriveRoundNumber = (raw: any) => {
+    const roundIdValue = raw.roundId ?? raw.queueEntry?.roundId;
+    const roundNumberFromId = typeof roundIdValue === "object" ? roundIdValue?.roundNumber : undefined;
+    if (typeof roundNumberFromId === "number") return roundNumberFromId;
+
+    const roundLabel = raw.round ?? raw.queueEntry?.round;
+    if (typeof roundLabel === "number") return roundLabel;
+    if (typeof roundLabel === "string") {
+      const match = roundLabel.match(/(\d+)/);
+      if (match) return Number(match[1]);
+    }
+
+    if (typeof raw.currentRound === "number") return raw.currentRound;
+    return 1;
+  };
 
   /* ── normalizer ── */
   const normalizeStudent = (raw: any, i: number, compName: string): Student => {
@@ -132,7 +153,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
       contact: raw.contact ?? raw.student?.contact ?? "—",
       emergencyContact: raw.emergencyContact?.phone ?? raw.student?.emergencyContact?.phone ?? "—",
       status: statusMap[statusRaw] ?? "unassigned",
-      round: raw.round ?? raw.currentRound ?? 1,
+      round: deriveRoundNumber(raw),
       position: raw.position ?? raw.queueEntry?.position ?? 0,
       locationStatus: (statusMap[statusRaw] ?? "unassigned") as Student["locationStatus"],
       currentCompany: raw.companyName ?? compName,
@@ -265,9 +286,9 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
     }
   };
 
-  const handleUpdateStatus = async (studentId: string, newStatus: Student["status"]) => {
+  const handleUpdateStatus = async (student: Student, newStatus: Student["status"]) => {
     setStudents(prev => prev.map(s => {
-      if (s.id !== studentId) return s;
+      if (s.id !== student.id) return s;
       let locStatus = s.locationStatus;
       if (newStatus === "in-queue") {
         locStatus = s.currentCompany ? "in-queue" : "idle" as any;
@@ -282,10 +303,107 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
     }));
 
     try {
-      await cocoApi.updateStudentStatus({ studentId, companyId: company.id, status: newStatus });
+      const statusMap: Record<Student["status"], string> = {
+        "in-queue": "in_queue",
+        "in-interview": "in_interview",
+        completed: "completed",
+        unassigned: "not_joined",
+      };
+
+      await cocoApi.updateStudentStatus({
+        studentId: student.id,
+        companyId: company.id,
+        status: statusMap[newStatus],
+        round: `Round ${student.round}`,
+      });
       fetchData();
     } catch {
       toast.error("Failed to update status");
+      fetchData();
+    }
+  };
+
+  const ensureStudentInRound = async (studentId: string, roundNumber: number) => {
+    try {
+      await cocoApi.addStudentToRound({ studentId, companyId: company.id, roundNumber });
+    } catch (err: any) {
+      if (!String(err?.message ?? "").includes("actively in this round's queue already")) {
+        throw err;
+      }
+    }
+  };
+
+  const openForceAction = (student: Student, action: Student["status"]) => {
+    if (action === "completed") {
+      handleUpdateStatus(student, action);
+      return;
+    }
+
+    if (action === "in-interview") {
+      const availablePanels = panels.filter((panel) => panel.status === "unoccupied");
+      if (availablePanels.length === 0) {
+        toast.error("No interview panels are currently available.");
+        return;
+      }
+      setForcePanelSelection(availablePanels[0].id);
+      setForceRoundSelection(String(availablePanels[0].currentRound || student.round || 1));
+      setForceActionStudent(student);
+      setForceActionType("in-interview");
+      return;
+    }
+
+    setForceRoundSelection(String(student.round || company.currentRound || 1));
+    setForceActionStudent(student);
+    setForceActionType("in-queue");
+  };
+
+  const resetForceAction = () => {
+    setForceActionStudent(null);
+    setForceActionType(null);
+    setForceRoundSelection("1");
+    setForcePanelSelection("");
+    setForceActionLoading(false);
+  };
+
+  const handleConfirmForceAction = async () => {
+    if (!forceActionStudent || !forceActionType) return;
+
+    setForceActionLoading(true);
+    try {
+      if (forceActionType === "in-queue") {
+        const roundNumber = parseInt(forceRoundSelection, 10);
+        if (isNaN(roundNumber) || roundNumber < 1) {
+          throw new Error("Please select a valid round.");
+        }
+
+        await ensureStudentInRound(forceActionStudent.id, roundNumber);
+        await cocoApi.updateStudentStatus({
+          studentId: forceActionStudent.id,
+          companyId: company.id,
+          status: "in_queue",
+          round: `Round ${roundNumber}`,
+        });
+        toast.success(`${forceActionStudent.name} moved to Round ${roundNumber} queue.`);
+      }
+
+      if (forceActionType === "in-interview") {
+        const selectedPanel = panels.find((panel) => panel.id === forcePanelSelection && panel.status === "unoccupied");
+        if (!selectedPanel) {
+          throw new Error("Please select an available panel.");
+        }
+
+        const roundNumber = selectedPanel.currentRound || 1;
+        await cocoApi.updatePanel(selectedPanel.id, { roundNumber });
+        await ensureStudentInRound(forceActionStudent.id, roundNumber);
+        await cocoApi.assignPanelStudent(selectedPanel.id, { studentId: forceActionStudent.id });
+        toast.success(`${forceActionStudent.name} assigned to ${selectedPanel.name} for interview.`);
+      }
+
+      resetForceAction();
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update status");
+      setForceActionLoading(false);
       fetchData();
     }
   };
@@ -956,7 +1074,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                           <Mail className="h-3.5 w-3.5 mr-1" />
                           Send Notification
                         </Button>
-                        <Select value={student.status} onValueChange={(v) => handleUpdateStatus(student.id, v as any)}>
+                        <Select value={student.status} onValueChange={(v) => openForceAction(student, v as any)}>
                           <SelectTrigger className="w-40 h-8 text-xs bg-white border-gray-300">
                             <SelectValue placeholder="Update Status" />
                           </SelectTrigger>
@@ -1007,6 +1125,62 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                 </div>
               </Button>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!forceActionType && !!forceActionStudent} onOpenChange={(open) => !open && resetForceAction()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {forceActionType === "in-interview" ? "Force Interviewing" : "Force In Queue"}
+            </DialogTitle>
+            <DialogDescription>
+              {forceActionType === "in-interview"
+                ? `Choose an available panel for ${forceActionStudent?.name}.`
+                : `Choose which round queue ${forceActionStudent?.name} should be added to.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {forceActionType === "in-interview" ? (
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Available Panel</label>
+                <Select value={forcePanelSelection} onValueChange={(value) => {
+                  setForcePanelSelection(value);
+                  const selectedPanel = panels.find((panel) => panel.id === value);
+                  if (selectedPanel) setForceRoundSelection(String(selectedPanel.currentRound || 1));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a panel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {panels.filter((panel) => panel.status === "unoccupied").map((panel) => (
+                      <SelectItem key={panel.id} value={panel.id}>
+                        {panel.name} • Round {panel.currentRound} • {panel.room}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Round Queue</label>
+                <Select value={forceRoundSelection} onValueChange={setForceRoundSelection}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Round" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: Math.max(company?.totalRounds || 0, 3) }, (_, i) => i + 1).map((r) => (
+                      <SelectItem key={r} value={r.toString()}>Round {r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button className="w-full bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirmForceAction} disabled={forceActionLoading}>
+              {forceActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirm
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

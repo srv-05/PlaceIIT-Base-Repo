@@ -38,7 +38,7 @@ const getStatusBadge = (status: string) => {
     case "in-queue":
       return <Badge className="bg-blue-50 text-blue-600 border-blue-200 font-normal"><Clock className="h-3 w-3 mr-1" />In Queue</Badge>;
     case "yet-to-interview":
-      return <Badge className="bg-yellow-50 text-yellow-600 border-yellow-200 font-normal"><AlertCircle className="h-3 w-3 mr-1" />Yet to Interview</Badge>;
+      return <Badge className="bg-yellow-50 text-yellow-600 border-yellow-200 font-normal"><AlertCircle className="h-3 w-3 mr-1" />In Interview</Badge>;
     case "completed":
       return <Badge className="bg-green-50 text-green-600 border-green-200 font-normal"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
     case "on-hold":
@@ -132,6 +132,21 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
+  const deriveRoundNumber = (raw: any, fallbackRound = 1) => {
+    const roundIdValue = raw.roundId ?? raw.queueEntry?.roundId;
+    const roundNumberFromId = typeof roundIdValue === "object" ? roundIdValue?.roundNumber : undefined;
+    if (typeof roundNumberFromId === "number") return roundNumberFromId;
+
+    const roundLabel = raw.round ?? raw.queueEntry?.round;
+    if (typeof roundLabel === "number") return roundLabel;
+    if (typeof roundLabel === "string") {
+      const match = roundLabel.match(/(\d+)/);
+      if (match) return Number(match[1]);
+    }
+
+    return fallbackRound;
+  };
+
   useEffect(() => {
     if (!manualStudentInput || selectedStudent?.name === manualStudentInput || selectedStudent?.rollNumber === manualStudentInput) {
       setSearchResults([]);
@@ -216,6 +231,44 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
             if (rd._id) rIds[rn] = rd._id;
           });
         }
+
+        const seenStudentIds = new Set(
+          Object.values(byRound)
+            .flat()
+            .map((student) => `${student.id}-${student.round}`)
+        );
+
+        sListRaw.forEach((studentRaw: any, index: number) => {
+          const queueStatus = studentRaw.queueEntry?.status;
+          if (!queueStatus || queueStatus === "pending" || queueStatus === "rejected" || queueStatus === "exited") {
+            return;
+          }
+
+          const inferredRound = deriveRoundNumber(studentRaw, 1);
+          if (!byRound[inferredRound]) {
+            byRound[inferredRound] = [];
+          }
+
+          const dedupeKey = `${studentRaw._id ?? studentRaw.id ?? studentRaw.student?._id ?? String(index)}-${inferredRound}`;
+          if (seenStudentIds.has(dedupeKey)) {
+            return;
+          }
+
+          byRound[inferredRound].push(normalizeStudent(studentRaw, index, inferredRound));
+          seenStudentIds.add(dedupeKey);
+        });
+
+        Object.keys(byRound).forEach((roundKey) => {
+          const roundNumber = Number(roundKey);
+          byRound[roundNumber] = byRound[roundNumber].sort((a, b) => {
+            if (a.status !== b.status) {
+              const statusOrder = ["in-queue", "on-hold", "yet-to-interview", "completed"];
+              return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+            }
+            return a.position - b.position;
+          });
+        });
+
         setRoundIds(rIds);
         setStudentsByRound(byRound);
         setPanelsByRound(panelsRoundMap);
@@ -424,9 +477,9 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
             <StudentCard key={s.id} student={s} isFlagged onResume={() => handleResumeQueue(s)} />
           ))}
 
-          {/* Yet to Interview */}
+          {/* In Interview */}
           <h3 className="text-sm font-semibold text-yellow-600 flex items-center mt-6 mb-2">
-            <AlertCircle className="h-4 w-4 mr-1.5" /> Yet to Interview ({yetToInterview.length})
+            <AlertCircle className="h-4 w-4 mr-1.5" /> In Interview ({yetToInterview.length})
           </h3>
           {yetToInterview.length === 0 && (
             <div className="text-center py-5 text-xs text-gray-400 border border-dashed rounded-lg bg-gray-50/50">Empty</div>
@@ -504,7 +557,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
                       <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="yet-to-interview">Yet to Interview</SelectItem>
+                      <SelectItem value="yet-to-interview">In Interview</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

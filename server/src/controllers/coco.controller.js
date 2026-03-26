@@ -9,6 +9,24 @@ const queueService = require("../services/queue.service");
 const roundService = require("../services/round.service");
 const { PREDEFINED_NOTIFICATIONS } = require("../utils/constants");
 
+const ACTIVE_QUEUE_STATUSES = ["in_queue", "in_interview", "on_hold", "pending", "not_joined"];
+
+const getQueueEntryPriority = (entry) => {
+  const statusPriority = {
+    in_interview: 5,
+    in_queue: 4,
+    on_hold: 3,
+    pending: 2,
+    not_joined: 1,
+    completed: 0,
+    rejected: -1,
+    exited: -2,
+    offer_given: -3,
+  };
+
+  return statusPriority[entry?.status] ?? -10;
+};
+
 // @desc    Get assigned company details
 // @route   GET /api/coco/company
 const getAssignedCompany = async (req, res) => {
@@ -35,7 +53,15 @@ const getShortlistedStudents = async (req, res) => {
     // Attach queue status
     const students = await Promise.all(
       company.shortlistedStudents.map(async (s) => {
-        const q = await Queue.findOne({ companyId: company._id, studentId: s._id });
+        const queueEntries = await Queue.find({ companyId: company._id, studentId: s._id })
+          .populate("roundId", "roundName roundNumber")
+          .sort({ updatedAt: -1, createdAt: -1 });
+
+        const activeQueueEntry = queueEntries.find((entry) => ACTIVE_QUEUE_STATUSES.includes(entry.status));
+        const q = activeQueueEntry
+          || queueEntries.sort((a, b) => getQueueEntryPriority(b) - getQueueEntryPriority(a))[0]
+          || null;
+
         return { ...s.toObject(), queueEntry: q };
       })
     );
@@ -62,7 +88,14 @@ const addStudentToQueue = async (req, res) => {
 const updateStudentStatus = async (req, res) => {
   try {
     const { studentId, companyId, status, roundId, panelId, round = "Round 1" } = req.body;
-    const result = await queueService.updateStatus(studentId, companyId, status, roundId, panelId, round);
+    const normalizedStatusMap = {
+      "in-queue": "in_queue",
+      "in-interview": "in_interview",
+      "on-hold": "on_hold",
+      "yet-to-interview": "not_joined",
+    };
+    const normalizedStatus = normalizedStatusMap[status] || status;
+    const result = await queueService.updateStatus(studentId, companyId, normalizedStatus, roundId, panelId, round);
     res.json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -191,6 +224,15 @@ const assignPanelStudent = async (req, res) => {
     const { studentId } = req.body;
     const panel = await Panel.findById(req.params.id).populate("roundId");
     if (!panel) return res.status(404).json({ message: "Panel not found" });
+    if (panel.status === "occupied" && String(panel.currentStudent) !== String(studentId)) {
+      return res.status(400).json({ message: "Selected panel is already occupied" });
+    }
+
+    let studentDoc = null;
+    await Panel.updateMany(
+      { companyId: panel.companyId, currentStudent: studentId, _id: { $ne: panel._id } },
+      { $set: { currentStudent: null, status: "unoccupied" } }
+    );
 
     panel.status = "occupied";
     panel.currentStudent = studentId;
@@ -326,8 +368,13 @@ const addStudentToRound = async (req, res) => {
 
     const roundNameStr = resolvedRoundObj ? (resolvedRoundObj.roundName || `Round ${resolvedRoundObj.roundNumber}`) : "Round 1";
 
-    // Find or create queue entry
+    // Find or create queue entry.
+    // Some databases may still have the legacy unique index on { companyId, studentId },
+    // so we reuse an existing company-level row when a round-specific row doesn't exist.
     let queueEntry = await Queue.findOne({ studentId, companyId, round: roundNameStr });
+    if (!queueEntry) {
+      queueEntry = await Queue.findOne({ studentId, companyId }).sort({ updatedAt: -1, createdAt: -1 });
+    }
 
     if (queueEntry) {
       if (queueEntry.roundId?.toString() === resolvedRoundId.toString() && ["in_queue", "in_interview", "on_hold", "not_joined"].includes(queueEntry.status)) {
@@ -339,8 +386,12 @@ const addStudentToRound = async (req, res) => {
       const nextPosition = (lastEntry && lastEntry.position ? lastEntry.position : 0) + 1;
 
       queueEntry.roundId = resolvedRoundId;
+      queueEntry.round = roundNameStr;
       queueEntry.status = finalStatus;
       queueEntry.position = nextPosition;
+      queueEntry.panelId = undefined;
+      queueEntry.interviewStartedAt = undefined;
+      queueEntry.completedAt = undefined;
       await queueEntry.save();
     } else {
       // Calculate next position for this specific round

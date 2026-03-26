@@ -1,6 +1,7 @@
 const Queue = require("../models/Queue.model");
 const Company = require("../models/Company.model");
 const Student = require("../models/Student.model");
+const Panel = require("../models/Panel.model");
 const { STUDENT_STATUS, SOCKET_EVENTS } = require("../utils/constants");
 const { getIO } = require("../config/socket");
 const InterviewRound = require("../models/InterviewRound.model");
@@ -320,17 +321,39 @@ const rejectQueueRequest = async (studentId, companyId, round = "Round 1") => {
    updateStatus — generic status update (COCO panel actions etc.)
 ─────────────────────────────────────────────────────────── */
 const updateStatus = async (studentId, companyId, status, roundId = null, panelId = null, round = "Round 1") => {
-  const entry = await Queue.findOne({ companyId, studentId, round }).populate("studentId");
+  let entry = await Queue.findOne({ companyId, studentId, round }).populate("studentId");
+  if (!entry) {
+    entry = await Queue.findOne({
+      companyId,
+      studentId,
+      status: { $in: [STUDENT_STATUS.IN_QUEUE, STUDENT_STATUS.IN_INTERVIEW, STUDENT_STATUS.ON_HOLD, STUDENT_STATUS.NOT_JOINED] },
+    })
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .populate("studentId");
+  }
   if (!entry) throw new Error("Queue entry not found");
 
   entry.status = status;
   if (roundId) entry.roundId = roundId;
   if (panelId) entry.panelId = panelId;
-  if (status === STUDENT_STATUS.IN_INTERVIEW) entry.interviewStartedAt = new Date();
+  if (status === STUDENT_STATUS.IN_INTERVIEW) {
+    entry.interviewStartedAt = new Date();
+    entry.completedAt = undefined;
+  }
+  if ([STUDENT_STATUS.IN_QUEUE, STUDENT_STATUS.NOT_JOINED, STUDENT_STATUS.ON_HOLD].includes(status)) {
+    entry.completedAt = undefined;
+  }
   if ([STUDENT_STATUS.COMPLETED, STUDENT_STATUS.REJECTED, STUDENT_STATUS.EXITED].includes(status))
     entry.completedAt = new Date();
 
   await entry.save();
+
+  if (status !== STUDENT_STATUS.IN_INTERVIEW) {
+    await Panel.updateMany(
+      { companyId, currentStudent: studentId },
+      { $set: { currentStudent: null, status: "unoccupied" } }
+    );
+  }
 
   safeEmitTo(`company:${companyId}`, SOCKET_EVENTS.STATUS_UPDATED, {
     companyId, studentId, status,

@@ -14,6 +14,7 @@ const queueService = require("../services/queue.service");
 const getProfile = async (req, res) => {
   try {
     const student = await Student.findOne({ userId: req.user.id })
+      .populate("userId", "email")
       .populate("shortlistedCompanies", "name logo day slot venue mode currentRound");
     if (!student) return res.status(404).json({ message: "Student not found" });
     res.json(student);
@@ -27,17 +28,23 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { contact, emergencyContact, friendContact, branch, batch, email } = req.body;
-    const student = await Student.findOneAndUpdate(
+    await Student.findOneAndUpdate(
       { userId: req.user.id },
       { contact, emergencyContact, friendContact, branch, batch, profileCompleted: true },
       { new: true }
     );
-    if (!student) return res.status(404).json({ message: "Student not found" });
     // Update email on User model if provided
     if (email) {
       await User.findByIdAndUpdate(req.user.id, { email });
     }
-    res.json(student);
+    
+    // Fetch and return the fully populated object so frontend has the updated email
+    const updatedStudent = await Student.findOne({ userId: req.user.id })
+      .populate("userId", "email")
+      .populate("shortlistedCompanies", "name logo day slot venue mode currentRound");
+      
+    if (!updatedStudent) return res.status(404).json({ message: "Student not found" });
+    res.json(updatedStudent);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

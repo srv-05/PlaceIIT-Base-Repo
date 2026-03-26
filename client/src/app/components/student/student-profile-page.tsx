@@ -39,7 +39,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
   const normalizeProfile = (raw: any): ProfileData => ({
     name: raw.name ?? "",
     rollNo: raw.rollNumber ?? raw.rollNo ?? rollNo ?? "2021CS101",
-    email: raw.email ?? raw.user?.email ?? "",
+    email: raw.email ?? raw.userId?.email ?? raw.user?.email ?? "",
     phone: raw.contact ?? raw.phone ?? "",
     emergencyContactName: raw.emergencyContact?.name ?? "",
     emergencyContactPhone: raw.emergencyContact?.phone ?? "",

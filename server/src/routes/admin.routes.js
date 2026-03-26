@@ -9,7 +9,8 @@ const {
   uploadCocoRequirementsExcel, getUploadStatus, getStudentCompanies,
   shortlistStudents, getShortlistedStudents, autoAllocateCocos, getCocoConflicts, addApc, getApcs, removeApc, uploadApcExcel,
   getQueries, respondToQuery,
-  getDriveState, updateDriveState, sendBroadcastNotification
+  getDriveState, updateDriveState, sendBroadcastNotification,
+  getApcNotifications, markApcNotifRead, clearAllApcNotifications
 } = require("../controllers/admin.controller");
 const { protect } = require("../middlewares/auth.middleware");
 const { authorize } = require("../middlewares/role.middleware");
@@ -47,5 +48,8 @@ router.put("/queries/:id", respondToQuery);
 router.get("/drive-state", getDriveState);
 router.put("/drive-state", updateDriveState);
 router.post("/broadcast-notification", sendBroadcastNotification);
+router.get("/notifications", getApcNotifications);
+router.put("/notifications/:id/read", markApcNotifRead);
+router.delete("/notifications", clearAllApcNotifications);
 
 module.exports = router;

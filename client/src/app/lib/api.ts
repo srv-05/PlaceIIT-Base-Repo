@@ -310,6 +310,11 @@ export const adminApi = {
         request("/admin/drive-state", { method: "PUT", body: JSON.stringify(data) }),
     sendBroadcastNotification: (data: { message: string; type: string; audience: string }) =>
         request("/admin/broadcast-notification", { method: "POST", body: JSON.stringify(data) }),
+    getNotifications: () => request("/admin/notifications"),
+    markNotifRead: (id: string) =>
+        request(`/admin/notifications/${id}/read`, { method: "PUT" }),
+    clearAllNotifications: () =>
+        request("/admin/notifications", { method: "DELETE" }),
 };
 
 /* ═══════════════════════════════════════════════════════════

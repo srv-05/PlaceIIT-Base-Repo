@@ -34,6 +34,8 @@ interface AuthState {
     setUnreadNotificationsCount: (n: number) => void;
     cocoUnreadNotificationsCount: number;
     setCocoUnreadNotificationsCount: (n: number) => void;
+    apcUnreadNotificationsCount: number;
+    setApcUnreadNotificationsCount: (n: number) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isMainAdmin, setIsMainAdmin] = useState(false);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
     const [cocoUnreadNotificationsCount, setCocoUnreadNotificationsCount] = useState(0);
+    const [apcUnreadNotificationsCount, setApcUnreadNotificationsCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
     // Restore session from localStorage on mount
@@ -119,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsMainAdmin(false);
         setUnreadNotificationsCount(0);
         setCocoUnreadNotificationsCount(0);
+        setApcUnreadNotificationsCount(0);
     };
 
     if (loading) {
@@ -147,6 +151,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUnreadNotificationsCount,
                 cocoUnreadNotificationsCount,
                 setCocoUnreadNotificationsCount,
+                apcUnreadNotificationsCount,
+                setApcUnreadNotificationsCount,
             }}
         >
             {children}

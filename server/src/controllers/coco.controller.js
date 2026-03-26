@@ -136,11 +136,54 @@ const sendNotification = async (req, res) => {
 const toggleWalkIn = async (req, res) => {
   try {
     const { enabled } = req.body;
+
+    // Fetch company BEFORE update to detect activation
+    const oldCompany = await Company.findById(req.params.companyId);
+    if (!oldCompany) return res.status(404).json({ message: "Company not found" });
+
+    const wasEnabled = oldCompany.isWalkInEnabled;
+
     const company = await Company.findByIdAndUpdate(
       req.params.companyId,
       { isWalkInEnabled: enabled },
       { new: true }
     );
+
+    // Send walk-in activation notification only when toggled ON (false → true)
+    if (enabled && !wasEnabled) {
+      const User = require("../models/User.model");
+      const venueStr = company.venue || "the designated venue";
+      const message = `${company.name} has started walk-in interviews at ${venueStr}. Please proceed accordingly.`;
+
+      // Collect ALL recipient user IDs
+      const recipientIds = new Set();
+
+      // 1. ALL students
+      const allStudents = await Student.find().select("userId");
+      allStudents.forEach(s => { if (s.userId) recipientIds.add(s.userId.toString()); });
+
+      // 2. All CoCos
+      const cocoUsers = await User.find({ role: "coco" }).select("_id");
+      cocoUsers.forEach(u => recipientIds.add(u._id.toString()));
+
+      // 3. All APCs (admin role)
+      const apcUsers = await User.find({ role: "admin" }).select("_id");
+      apcUsers.forEach(u => recipientIds.add(u._id.toString()));
+
+      // Send notifications in parallel
+      const notifPromises = Array.from(recipientIds).map(recipientId =>
+        notificationService.sendNotification({
+          recipientId,
+          senderId: req.user.id,
+          companyId: company._id,
+          message,
+          type: "alert",
+          source: "coco",
+        })
+      );
+      await Promise.allSettled(notifPromises);
+    }
+
     res.json(company);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -518,7 +561,7 @@ const getCocoNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({
       recipientId: req.user.id,
-      source: { $in: ["student", "apc"] }
+      source: { $in: ["student", "apc", "coco", "system"] }
     })
       .populate("senderId", "name rollNumber")
       .populate("companyId", "name")
@@ -552,7 +595,7 @@ const clearAllNotifications = async (req, res) => {
   try {
     await Notification.deleteMany({
       recipientId: req.user.id,
-      source: { $in: ["student", "apc"] }
+      source: { $in: ["student", "apc", "coco", "system"] }
     });
     res.json({ message: "Notifications cleared" });
   } catch (err) {
@@ -767,16 +810,62 @@ const updateCompanyVenue = async (req, res) => {
     if (!venue || !venue.trim()) {
       return res.status(400).json({ message: "Venue is required" });
     }
+
+    // Fetch company BEFORE update to capture old venue
+    const oldCompany = await Company.findById(req.params.companyId);
+    if (!oldCompany) return res.status(404).json({ message: "Company not found" });
+
+    const oldVenue = oldCompany.venue || "Not Set";
+    const newVenue = venue.trim();
+
     const company = await Company.findByIdAndUpdate(
       req.params.companyId,
-      { venue: venue.trim() },
+      { venue: newVenue },
       { new: true }
     );
-    if (!company) return res.status(404).json({ message: "Company not found" });
 
     const { getIO } = require("../config/socket");
     const io = getIO();
     if (io) io.to(company._id.toString()).emit("status:updated");
+
+    // Send location change notifications only if venue actually changed
+    if (oldVenue !== newVenue) {
+      const User = require("../models/User.model");
+      const message = `Location for ${company.name} has been changed from ${oldVenue} to ${newVenue}`;
+
+      // Collect recipient user IDs
+      const recipientIds = new Set();
+
+      // 1. Students: shortlisted only (normal) or ALL (walk-in)
+      if (company.isWalkInEnabled) {
+        const allStudents = await Student.find().select("userId");
+        allStudents.forEach(s => { if (s.userId) recipientIds.add(s.userId.toString()); });
+      } else {
+        const shortlistedStudents = await Student.find({ _id: { $in: company.shortlistedStudents || [] } }).select("userId");
+        shortlistedStudents.forEach(s => { if (s.userId) recipientIds.add(s.userId.toString()); });
+      }
+
+      // 2. All CoCos
+      const cocoUsers = await User.find({ role: "coco" }).select("_id");
+      cocoUsers.forEach(u => recipientIds.add(u._id.toString()));
+
+      // 3. All APCs (admin role)
+      const apcUsers = await User.find({ role: "admin" }).select("_id");
+      apcUsers.forEach(u => recipientIds.add(u._id.toString()));
+
+      // Send notifications in parallel
+      const notifPromises = Array.from(recipientIds).map(recipientId =>
+        notificationService.sendNotification({
+          recipientId,
+          senderId: req.user.id,
+          companyId: company._id,
+          message,
+          type: "alert",
+          source: "coco",
+        })
+      );
+      await Promise.allSettled(notifPromises);
+    }
 
     res.json(company);
   } catch (err) {

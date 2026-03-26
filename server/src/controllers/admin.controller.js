@@ -914,6 +914,49 @@ const sendBroadcastNotification = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+// @desc    Get notifications for APC
+// @route   GET /api/admin/notifications
+const getApcNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find({
+      recipientId: req.user.id,
+    })
+      .populate("senderId", "name rollNumber")
+      .populate("companyId", "name")
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(notifications);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Mark a notification as read (APC)
+// @route   PUT /api/admin/notifications/:id/read
+const markApcNotifRead = async (req, res) => {
+  try {
+    const notif = await Notification.findOneAndUpdate(
+      { _id: req.params.id, recipientId: req.user.id },
+      { isRead: true },
+      { new: true }
+    );
+    if (!notif) return res.status(404).json({ message: "Notification not found" });
+    res.json(notif);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Clear all notifications for APC
+// @route   DELETE /api/admin/notifications
+const clearAllApcNotifications = async (req, res) => {
+  try {
+    await Notification.deleteMany({ recipientId: req.user.id });
+    res.json({ message: "Notifications cleared" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 module.exports = {
   getStats, getCompanies, addCompany, updateCompany,
@@ -922,5 +965,6 @@ module.exports = {
   uploadCompanyExcel, uploadShortlistExcel, uploadCocoExcel, uploadApcExcel, uploadStudentExcel, uploadCocoRequirementsExcel, getUploadStatus,
   shortlistStudents, getShortlistedStudents, autoAllocateCocos, getCocoConflicts,
   getQueries, respondToQuery,
-  getDriveState, updateDriveState, sendBroadcastNotification
+  getDriveState, updateDriveState, sendBroadcastNotification,
+  getApcNotifications, markApcNotifRead, clearAllApcNotifications
 };

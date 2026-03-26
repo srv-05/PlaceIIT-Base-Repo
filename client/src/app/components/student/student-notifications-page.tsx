@@ -34,6 +34,9 @@ interface Notification {
 const classifyNotificationType = (rawType: string | undefined, message: string): "info" | "warning" | "success" => {
   const msg = (message || "").toLowerCase();
 
+  // Backend "alert" type maps to warning (displayed as ALERT)
+  if (rawType === "alert") return "warning";
+
   // interview_call is always urgent → ALERT
   if (rawType === "interview_call") return "warning";
 

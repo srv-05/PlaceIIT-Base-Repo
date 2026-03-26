@@ -87,7 +87,7 @@ export function CoCoNavbar({ onNavigate, userName, unreadNotifications = 0 }: Co
                     Notifications
                   </SheetTitle>
                 </SheetHeader>
-                <div className="h-[calc(100vh-100px)] overflow-y-auto">
+                <div className="h-[calc(100vh-100px)] overflow-y-auto pl-3">
                   <CoCoNotificationsPage />
                 </div>
               </SheetContent>

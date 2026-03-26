@@ -71,6 +71,7 @@ function AppRoutes() {
             <Route path="companies" element={<APCCompaniesRoute />} />
             <Route path="companies/:id" element={<APCCompanyDetailsRoute />} />
             <Route path="profile" element={<APCProfileRoute />} />
+            <Route path="apcs" element={<APCApcsRoute />} />
             <Route path="queries" element={<APCQueriesRoute />} />
           </Route>
 

@@ -10,9 +10,10 @@ import { Search, Users, Building2, LogOut, User } from "lucide-react";
 interface APCNavbarProps {
   onNavigate?: (page: string) => void;
   userName?: string;
+  isMainAdmin?: boolean;
 }
 
-export function APCNavbar({ onNavigate, userName = "Admin" }: APCNavbarProps) {
+export function APCNavbar({ onNavigate, userName = "Admin", isMainAdmin }: APCNavbarProps) {
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm">
       <div className="container mx-auto px-8 py-3.5">
@@ -55,6 +56,22 @@ export function APCNavbar({ onNavigate, userName = "Admin" }: APCNavbarProps) {
             >
               Companies
             </button>
+            
+            <button 
+              onClick={() => onNavigate?.('queries')}
+              className="text-gray-500 hover:text-gray-900 transition-colors font-medium"
+            >
+              Queries
+            </button>
+
+            {isMainAdmin && (
+              <button 
+                onClick={() => onNavigate?.('manage-apcs')}
+                className="text-emerald-600 hover:text-emerald-700 transition-colors font-medium flex items-center gap-1"
+              >
+                APCs
+              </button>
+            )}
             
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
               {/* Profile Dropdown */}

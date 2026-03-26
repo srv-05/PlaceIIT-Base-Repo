@@ -11,6 +11,7 @@ const {
   getCocoNotifications, markNotifRead, clearAllNotifications, addStudentToCompany,
   promoteStudentsViaExcel,
   getPendingRequests, acceptStudent, rejectStudent, markCompleted,
+  updateCompanyVenue,
 } = require("../controllers/coco.controller");
 const { getStudentCompanies } = require("../controllers/admin.controller");
 const { protect } = require("../middlewares/auth.middleware");
@@ -24,6 +25,7 @@ router.get("/company/:companyId/rounds", getRounds);
 router.get("/company/:companyId/panels", getPanels);
 router.get("/company/:companyId/pending", getPendingRequests);
 router.put("/company/:companyId/walkin", toggleWalkIn);
+router.put("/company/:companyId/venue", updateCompanyVenue);
 router.post("/queue/add", addStudentToQueue);
 router.put("/queue/status", updateStudentStatus);
 router.put("/queue/accept", acceptStudent);

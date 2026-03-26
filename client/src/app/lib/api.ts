@@ -75,7 +75,7 @@ async function uploadRequest<T = unknown>(
    ═══════════════════════════════════════════════════════════ */
 export interface LoginResponse {
     token: string;
-    user: { id: string; instituteId: string; role: string; email: string; mustChangePassword?: boolean };
+    user: { id: string; instituteId: string; role: string; email: string; mustChangePassword?: boolean; isMainAdmin?: boolean };
 }
 
 export const authApi = {
@@ -85,7 +85,7 @@ export const authApi = {
             body: JSON.stringify({ instituteId, password, role }),
         }),
 
-    getMe: () => request<{ _id: string; instituteId: string; role: string; email: string; mustChangePassword?: boolean }>("/auth/me"),
+    getMe: () => request<{ _id: string; instituteId: string; role: string; email: string; mustChangePassword?: boolean; isMainAdmin?: boolean }>("/auth/me"),
 
     changePassword: (newPassword: string) =>
         request<{ message: string; user: any }>("/auth/change-password", {
@@ -184,6 +184,8 @@ export const cocoApi = {
         request(`/coco/company/${companyId}/panels`),
     toggleWalkIn: (companyId: string, data: { enabled: boolean }) =>
         request(`/coco/company/${companyId}/walkin`, { method: "PUT", body: JSON.stringify(data) }),
+    updateVenue: (companyId: string, venue: string) =>
+        request(`/coco/company/${companyId}/venue`, { method: "PUT", body: JSON.stringify({ venue }) }),
     addStudentToQueue: (data: { companyId: string; studentId: string }) =>
         request("/coco/queue/add", { method: "POST", body: JSON.stringify(data) }),
     updateStudentStatus: (data: { studentId: string; companyId: string; status: string; round?: string }) =>
@@ -286,6 +288,14 @@ export const adminApi = {
     getQueries: () => request("/admin/queries"),
     respondToQuery: (id: string, data: { response: string; status: string }) =>
         request(`/admin/queries/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    /** Add an APC */
+    addApc: (data: Record<string, unknown>) =>
+        request("/admin/apc", { method: "POST", body: JSON.stringify(data) }),
+    getApcs: () => request("/admin/apcs"),
+    removeApc: (data: { apcId: string }) =>
+        request("/admin/remove-apc", { method: "POST", body: JSON.stringify(data) }),
+    uploadApcExcel: (formData: FormData) =>
+        uploadRequest("/admin/upload/apcs", formData),
 };
 
 /* ═══════════════════════════════════════════════════════════

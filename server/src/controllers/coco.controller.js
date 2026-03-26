@@ -259,7 +259,6 @@ const assignPanelStudent = async (req, res) => {
 
     res.json(panel);
   } catch (err) {
-    console.error("[assignPanelStudent] Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -298,7 +297,6 @@ const clearPanel = async (req, res) => {
 
     res.json(panel);
   } catch (err) {
-    console.error("[clearPanel] Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -760,6 +758,31 @@ const markCompleted = async (req, res) => {
   }
 };
 
+// @desc    Update company venue
+// @route   PUT /api/coco/company/:companyId/venue
+const updateCompanyVenue = async (req, res) => {
+  try {
+    const { venue } = req.body;
+    if (!venue || !venue.trim()) {
+      return res.status(400).json({ message: "Venue is required" });
+    }
+    const company = await Company.findByIdAndUpdate(
+      req.params.companyId,
+      { venue: venue.trim() },
+      { new: true }
+    );
+    if (!company) return res.status(404).json({ message: "Company not found" });
+
+    const { getIO } = require("../config/socket");
+    const io = getIO();
+    if (io) io.to(company._id.toString()).emit("status:updated");
+
+    res.json(company);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getAssignedCompany, getShortlistedStudents, addStudentToQueue,
   updateStudentStatus, sendNotification, toggleWalkIn,
@@ -769,4 +792,5 @@ module.exports = {
   getCocoNotifications, markNotifRead, clearAllNotifications, addStudentToCompany,
   promoteStudentsViaExcel,
   getPendingRequests, acceptStudent, rejectStudent, markCompleted,
+  updateCompanyVenue,
 };

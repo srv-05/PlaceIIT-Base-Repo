@@ -58,6 +58,9 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [addingPanel, setAddingPanel] = useState(false);
   const [isWalkinActive, setIsWalkinActive] = useState(false);
+  const [isVenueDialogOpen, setIsVenueDialogOpen] = useState(false);
+  const [newVenue, setNewVenue] = useState("");
+  const [savingVenue, setSavingVenue] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [company, setCompany] = useState({
@@ -436,6 +439,21 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
     }
   };
 
+  const handleChangeVenue = async () => {
+    if (!newVenue.trim()) return toast.error("Please enter a venue");
+    setSavingVenue(true);
+    try {
+      await cocoApi.updateVenue(company.id, newVenue.trim());
+      setCompany(prev => ({ ...prev, venue: newVenue.trim() }));
+      toast.success("Venue updated successfully");
+      setIsVenueDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update venue");
+    } finally {
+      setSavingVenue(false);
+    }
+  };
+
   const handleAddPanel = async () => {
     if (!panelRoom) return toast.error("Please enter a room number");
     setAddingPanel(true);
@@ -636,6 +654,14 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
               >
                 <RotateCw className="h-4 w-4 mr-2" />
                 Round Tracking
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => { setNewVenue(company.venue); setIsVenueDialogOpen(true); }}
+                className="border-green-600 text-green-600 hover:bg-green-50"
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Change Venue
               </Button>
               <Button
                 variant={isWalkinActive ? "default" : "outline"}
@@ -880,6 +906,31 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
               </Select>
             </div>
             <Button className="w-full bg-green-600 hover:bg-green-700 text-white" onClick={handleEditPanelSave}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Venue Dialog */}
+      <Dialog open={isVenueDialogOpen} onOpenChange={setIsVenueDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Venue</DialogTitle>
+            <DialogDescription>Update the venue for {company.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input
+              placeholder="Enter new venue (e.g. RM101)"
+              value={newVenue}
+              onChange={(e) => setNewVenue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleChangeVenue(); }}
+            />
+            <Button
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleChangeVenue}
+              disabled={savingVenue}
+            >
+              {savingVenue ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Venue"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

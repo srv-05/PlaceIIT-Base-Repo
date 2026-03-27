@@ -54,7 +54,7 @@ const processCompanyExcel = async (uploadId, filePath) => {
       } else if (slot.includes("afternoon") || slot.includes("pm")) {
         slot = "afternoon";
       } else if (slot.includes("evening")) {
-        slot = "evening";
+        slot = "afternoon"; // Evening is not supported, map to afternoon
       } else {
         slot = "morning"; // fallback
       }
@@ -83,25 +83,83 @@ const processShortlistExcel = async (uploadId, filePath, companyId) => {
     const wb = XLSX.readFile(filePath);
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-    let processed = 0;
-    const problemList = [];
+
+    if (rows.length === 0) throw new Error("Excel file is empty");
+
     const company = await Company.findById(companyId);
     if (!company) throw new Error("Company not found");
 
+    let successCount = 0;
+    let failedCount = 0;
+    const errors = [];
+    const seenRolls = new Set();
+
+    // Pre-load existing shortlist IDs for duplicate detection
+    const existingIds = new Set(
+      (company.shortlistedStudents || []).map(id => id.toString())
+    );
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
+      const rowNum = i + 2; // 1-indexed header + 1
+
+      // Normalize column headers to lowercase
       const norm = {};
-      Object.keys(row).forEach(k => norm[k.trim().toLowerCase()] = row[k]);
-      const roll = norm["roll"] || norm["rollnumber"] || "";
-      if (!roll) { problemList.push(`Row ${i + 2}: Missing Roll`); continue; }
-      const student = await Student.findOne({ rollNumber: roll });
-      if (!student) { problemList.push(`Row ${i + 2}: Student ${roll} not found`); continue; }
+      Object.keys(row).forEach(k => { norm[k.trim().toLowerCase()] = String(row[k]).trim(); });
+
+      const roll = norm["roll number"] || norm["rollnumber"] || norm["roll"] || "";
+      const email = (norm["email id"] || norm["email"] || "").toLowerCase();
+
+      // Skip completely empty rows
+      if (!roll && !email) continue;
+
+      // At least one identifier is required
+      if (!roll && !email) {
+        errors.push({ row: rowNum, reason: "Missing both Roll Number and Email ID" });
+        failedCount++;
+        continue;
+      }
+
+      // Deduplicate within the same file
+      const dedupeKey = roll || email;
+      if (seenRolls.has(dedupeKey)) continue; // silently skip duplicate rows
+      seenRolls.add(dedupeKey);
+
+      // Priority 1: match by Roll Number, Priority 2: match by Email ID
+      let student = null;
+      if (roll) {
+        student = await Student.findOne({ rollNumber: roll });
+      }
+      if (!student && email) {
+        const user = await User.findOne({ email, role: "student" });
+        if (user) {
+          student = await Student.findOne({ userId: user._id });
+        }
+      }
+
+      if (!student) {
+        errors.push({ row: rowNum, reason: `Student not found (Roll: ${roll || "—"}, Email: ${email || "—"})` });
+        failedCount++;
+        continue;
+      }
+
+      // Skip if already shortlisted
+      if (existingIds.has(student._id.toString())) {
+        continue; // silently skip already-shortlisted students
+      }
+
       await Company.findByIdAndUpdate(companyId, { $addToSet: { shortlistedStudents: student._id } });
       await Student.findByIdAndUpdate(student._id, { $addToSet: { shortlistedCompanies: companyId } });
-      processed++;
+      existingIds.add(student._id.toString());
+      successCount++;
     }
-    await ExcelUpload.findByIdAndUpdate(uploadId, { status: "success", recordsProcessed: processed, problemList });
-    return { processed, problemList };
+
+    await ExcelUpload.findByIdAndUpdate(uploadId, {
+      status: "success",
+      recordsProcessed: successCount,
+      problemList: errors.map(e => `Row ${e.row}: ${e.reason}`),
+    });
+    return { successCount, failedCount, errors };
   } catch (err) {
     await ExcelUpload.findByIdAndUpdate(uploadId, { status: "failed", problemList: [err.message] });
     throw err;

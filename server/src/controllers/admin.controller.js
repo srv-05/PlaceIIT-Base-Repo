@@ -67,10 +67,10 @@ const getCompanies = async (req, res) => {
 // @desc    Add a company manually
 // @route   POST /api/admin/companies
 const addCompany = async (req, res) => {
-    const { name, day, slot, venue } = req.body;
-    if (!name || day === undefined || !slot || !venue) {
-      return res.status(400).json({ message: "Name, Day, Slot, and Venue are required fields" });
-    }
+  const { name, day, slot, venue } = req.body;
+  if (!name || day === undefined || !slot || !venue) {
+    return res.status(400).json({ message: "Name, Day, Slot, and Venue are required fields" });
+  }
   try {
     const company = await Company.create(req.body);
     await emitStatsUpdate();
@@ -127,7 +127,7 @@ const getStudentCompanies = async (req, res) => {
     const studentId = req.params.id;
     // Find all companies where this student is shortlisted
     const companies = await Company.find({ shortlistedStudents: studentId });
-    
+
     // Check queue to determine status
     const Queue = require("../models/Queue.model");
     const queueEntries = await Queue.find({ studentId });
@@ -186,17 +186,17 @@ const { createCoco } = require("../services/coco.service");
 const addCoco = async (req, res) => {
   try {
     const { name, email, rollNumber, contact } = req.body;
-    
+
     try {
       const result = await createCoco({ name, email, rollNumber, contact });
       await emitStatsUpdate();
       res.status(201).json({ message: "CoCo added successfully and invitation email sent", ...result });
     } catch (err) {
       if (err.message.includes("Account created successfully, but welcome email failed")) {
-         await emitStatsUpdate();
-         res.status(201).json({ message: err.message });
+        await emitStatsUpdate();
+        res.status(201).json({ message: err.message });
       } else {
-         throw err;
+        throw err;
       }
     }
   } catch (err) {
@@ -211,7 +211,7 @@ const addStudent = async (req, res) => {
     console.log("[addStudent] Request body:", JSON.stringify(req.body));
     const { name, rollNumber, email, phone } = req.body;
     if (!name || !rollNumber || !email || !phone) return res.status(400).json({ message: "Name, Roll Number, Email ID, and Phone Number are required" });
-    
+
     // Validate phone number format (must be 10 digits)
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phone)) return res.status(400).json({ message: "Phone number must be exactly 10 digits" });
@@ -244,7 +244,7 @@ const addStudent = async (req, res) => {
       rollNumber,
       phone,
     });
-    
+
     await emitStatsUpdate();
 
     let emailSent = false;
@@ -255,13 +255,13 @@ const addStudent = async (req, res) => {
       console.error("[addStudent] Non-fatal error: Failed to send welcome email to", finalEmail, err);
     }
 
-    const resMessage = emailSent 
-      ? "Student added successfully" 
+    const resMessage = emailSent
+      ? "Student added successfully"
       : "Student added successfully (Warning: Welcome email could not be sent)";
 
-    res.status(201).json({ 
-      message: resMessage, 
-      student, 
+    res.status(201).json({
+      message: resMessage,
+      student,
       credentials: { instituteId, password: generatedPassword },
       emailSent
     });
@@ -292,7 +292,7 @@ const getApcs = async (req, res) => {
 const addApc = async (req, res) => {
   try {
     const { name, email, rollNumber, contact } = req.body;
-    
+
     // Check if the current user is mainAdmin
     const reqUser = await User.findById(req.user.id);
     if (!reqUser || !reqUser.isMainAdmin) {
@@ -337,15 +337,15 @@ const removeApc = async (req, res) => {
 const assignCoco = async (req, res) => {
   try {
     const { cocoId, companyId } = req.body;
-    
+
     // Check if coco is already assigned to ANY company (other than this one maybe?)
     const coco = await Coordinator.findById(cocoId);
     if (!coco) return res.status(404).json({ message: "CoCo not found" });
-    
+
     const otherCompanies = coco.assignedCompanies.filter(id => id.toString() !== companyId);
     if (otherCompanies.length > 0) {
-      return res.status(400).json({ 
-        message: "This CoCo is already allocated to another company. Please remove them from the old company first." 
+      return res.status(400).json({
+        message: "This CoCo is already allocated to another company. Please remove them from the old company first."
       });
     }
 
@@ -396,14 +396,21 @@ const uploadShortlistExcel = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const { companyId } = req.body;
+    if (!companyId) return res.status(400).json({ message: "companyId is required" });
     const upload = await ExcelUpload.create({
       uploadedBy: req.user.id,
       fileName: req.file.originalname,
       filePath: req.file.path,
       type: "student_shortlist",
     });
-    const result = await excelService.processShortlistExcel(upload._id, req.file.path, companyId || null);
-    res.json({ message: `${result.processed} student(s) shortlisted from Excel`, uploadId: upload._id, ...result });
+    const result = await excelService.processShortlistExcel(upload._id, req.file.path, companyId);
+    res.json({
+      message: `Shortlist uploaded successfully`,
+      uploadId: upload._id,
+      successCount: result.successCount,
+      failedCount: result.failedCount,
+      errors: result.errors,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -629,8 +636,8 @@ const autoAllocateCocos = async (req, res) => {
 
       for (let i = 0; i < requiredCount; i++) {
         // Step 1: Get available Co-Cos NOT used globally AND NOT in same day/slot AND not already assigned to this company
-        let available = cocos.filter(c => 
-          !usedCoCos.has(c._id.toString()) && 
+        let available = cocos.filter(c =>
+          !usedCoCos.has(c._id.toString()) &&
           !isAssignedInSameDaySlot(c._id.toString(), day, slot) &&
           !company.assignedCocos.includes(c._id)
         );
@@ -638,7 +645,7 @@ const autoAllocateCocos = async (req, res) => {
         // Step 4: If unused list is empty, allow reuse but still enforce day/slot
         if (available.length === 0) {
           console.log(`[AutoAllocate] Reusing Co-Co after all exhausted for company ${company.name}`);
-          available = cocos.filter(c => 
+          available = cocos.filter(c =>
             !isAssignedInSameDaySlot(c._id.toString(), day, slot) &&
             !company.assignedCocos.includes(c._id)
           );
@@ -647,7 +654,7 @@ const autoAllocateCocos = async (req, res) => {
         // Step 6: Randomly assign from available
         if (available.length > 0) {
           const selected = available[Math.floor(Math.random() * available.length)];
-          
+
           usedCoCos.add(selected._id.toString());
           cocoAssignments[selected._id.toString()].push({ day, slot });
           company.assignedCocos.push(selected._id); // So we don't pick them again for the same company
@@ -779,7 +786,7 @@ const respondToQuery = async (req, res) => {
   try {
     const { response, status } = req.body;
     const Query = require("../models/Query.model");
-    
+
     if (!response && status !== "resolved") {
       return res.status(400).json({ message: "Response is required" });
     }
@@ -809,7 +816,7 @@ const respondToQuery = async (req, res) => {
 
     // Send notification to the student
     const notificationService = require("../services/notification.service");
-    
+
     if (status === "replied" && response) {
       // Rich reply notification with APC name, query subject, and response text
       const truncatedResponse = response.length > 100 ? response.substring(0, 100) + "..." : response;
@@ -872,7 +879,7 @@ const updateDriveState = async (req, res) => {
     try {
       const io = getIO();
       if (io) io.emit(SOCKET_EVENTS.DRIVE_STATE_UPDATED, { currentDay: day, currentSlot: slot });
-    } catch (_) {}
+    } catch (_) { }
 
     res.json(state);
   } catch (err) {

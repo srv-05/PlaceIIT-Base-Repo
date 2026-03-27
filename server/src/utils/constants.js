@@ -25,7 +25,6 @@ const INTERVIEW_MODES = {
 const SLOTS = {
   MORNING: "morning",
   AFTERNOON: "afternoon",
-  EVENING: "evening",
 };
 
 const PREDEFINED_NOTIFICATIONS = [

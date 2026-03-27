@@ -17,7 +17,7 @@ async function fixData() {
 
     // Find companies assigned to this CoCo
     const companies = coco.assignedCompanies;
-    
+
     // Group by day and slot
     const slotMap = {};
     for (const c of companies) {
@@ -31,23 +31,23 @@ async function fixData() {
     for (const [key, comps] of Object.entries(slotMap)) {
       if (comps.length > 1) {
         console.log(`Violation found for ${coco.name} in Day Slot ${key}:`, comps.map(c => c.name));
-        
+
         // Find Optiver
         const optiverIndex = comps.findIndex(c => c.name.toLowerCase().includes("optiver"));
         if (optiverIndex > -1) {
           const optiver = comps[optiverIndex];
           console.log(`Removing Optiver (${optiver._id}) from ${coco.name} in ${key}`);
-          
+
           // Remove Optiver from CoCo
           await Coordinator.findByIdAndUpdate(coco._id, { $pull: { assignedCompanies: optiver._id } });
           // Remove CoCo from Optiver
           await Company.findByIdAndUpdate(optiver._id, { $pull: { assignedCocos: coco._id } });
-          
+
           // Find next free slot on that day
           const day = optiver.day;
           let newSlot = null;
-          // Slots are usually "morning", "afternoon", "evening"
-          const possibleSlots = ["morning", "afternoon", "evening"];
+          // Slots are "morning", "afternoon"
+          const possibleSlots = ["morning", "afternoon"];
           for (const s of possibleSlots) {
             const hasSlot = companies.some(c => c.day === day && c.slot.toLowerCase() === s && c._id.toString() !== optiver._id.toString());
             if (!hasSlot) {

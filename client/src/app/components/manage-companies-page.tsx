@@ -49,6 +49,7 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
   const [isAddCompanyOpen, setIsAddCompanyOpen] = useState(false);
   const [isUploadCompanyOpen, setIsUploadCompanyOpen] = useState(false);
   const [isAddStudentsOpen, setIsAddStudentsOpen] = useState(false);
+  const [isUploadShortlistOpen, setIsUploadShortlistOpen] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 
   // Form states
@@ -56,7 +57,7 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
   const [newCompanyDay, setNewCompanyDay] = useState("");
   const [newCompanySlot, setNewCompanySlot] = useState("");
   const [newCompanyVenue, setNewCompanyVenue] = useState("");
-  
+
   // Manual student addition states
   const [manualStudentList, setManualStudentList] = useState("");
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
@@ -99,12 +100,21 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
   const dayParts = [...new Set(companies.map((c) => c.day))].sort();
   const slotParts = [...new Set(companies.map((c) => c.slot))].sort();
 
-  const filteredCompanies = companies.filter((company) => {
-    const matchesSearch = company.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDay = filterDay === "all" || company.day === filterDay;
-    const matchesSlot = filterSlot === "all" || company.slot === filterSlot;
-    return matchesSearch && matchesDay && matchesSlot;
-  });
+  const slotOrder: Record<string, number> = { Morning: 1, Afternoon: 2 };
+
+  const filteredCompanies = companies
+    .filter((company) => {
+      const matchesSearch = company.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesDay = filterDay === "all" || company.day === filterDay;
+      const matchesSlot = filterSlot === "all" || company.slot === filterSlot;
+      return matchesSearch && matchesDay && matchesSlot;
+    })
+    .sort((a, b) => {
+      const dayA = parseInt(a.day.replace(/\D/g, "")) || 0;
+      const dayB = parseInt(b.day.replace(/\D/g, "")) || 0;
+      if (dayA !== dayB) return dayA - dayB;
+      return (slotOrder[a.slot] ?? 99) - (slotOrder[b.slot] ?? 99);
+    });
 
   const handleAddCompany = async () => {
     if (!newCompanyName || !newCompanyDay || !newCompanySlot || !newCompanyVenue) return;
@@ -168,6 +178,7 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
     event.target.value = "";
   };
 
+
   const handleShortlistExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>, companyId: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -176,10 +187,18 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
     formData.append("companyId", companyId);
     try {
       const res: any = await adminApi.uploadShortlistExcel(formData);
-      toast.success(res.message || "Shortlist upload successful");
-      if (res.errors?.length > 0) {
-        toast.warning(`${res.errors.length} row(s) had issues. Check console for details.`);
-        console.warn("Shortlist Excel errors:", res.errors);
+      const { successCount = 0, failedCount = 0, errors = [] } = res;
+      if (successCount > 0) {
+        toast.success(`${successCount} student(s) shortlisted successfully!`);
+      }
+      if (failedCount > 0) {
+        toast.warning(`${failedCount} row(s) failed. Check details below.`);
+        errors.forEach((e: any) => {
+          toast.error(`Row ${e.row}: ${e.reason}`, { duration: 8000 });
+        });
+      }
+      if (successCount === 0 && failedCount === 0) {
+        toast.info("No new students were added (file may be empty or all students already shortlisted).");
       }
       await fetchCompanies();
     } catch (err: any) {
@@ -228,7 +247,7 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
       const res: any = await adminApi.shortlistStudents(selectedCompanyId, rollNumbers);
       const count = res.shortlisted?.length ?? rollNumbers.length;
       toast.success(`${count} student(s) shortlisted successfully!`);
-      
+
       setSelectedStudentsForShortlist([]);
       setStudentSearchTerm("");
       setIsAddStudentsOpen(false);
@@ -321,7 +340,7 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
                     <Select value={newCompanySlot} onValueChange={setNewCompanySlot}>
                       <SelectTrigger><SelectValue placeholder="Select slot" /></SelectTrigger>
                       <SelectContent>
-                        {["Morning", "Afternoon", "Evening"].map((s) => (
+                        {["Morning", "Afternoon"].map((s) => (
                           <SelectItem key={s} value={s}>{s}</SelectItem>
                         ))}
                       </SelectContent>
@@ -466,7 +485,7 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
                             />
                             {isSearchingStudents && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />}
                           </div>
-                          
+
                           {/* Suggestions Dropdown */}
                           {studentSuggestions.length > 0 && (
                             <div className="absolute z-50 mt-1 w-[calc(100%-48px)] max-h-60 overflow-auto bg-white border border-gray-200 rounded-md shadow-lg">
@@ -527,24 +546,63 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
                     </DialogContent>
                   </Dialog>
 
-                  {/* Upload Shortlist Excel */}
-                  <div className="relative">
-                    <input
-                      id={`student-excel-${company.id}`}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => handleShortlistExcelUpload(e, company.id)}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2 border-gray-300"
-                      onClick={() => document.getElementById(`student-excel-${company.id}`)?.click()}
-                    >
-                      <Upload className="h-4 w-4" /> Upload Shortlist
-                    </Button>
-                  </div>
+                  {/* Upload Shortlist Excel (with template preview) */}
+                  <Dialog
+                    open={isUploadShortlistOpen && selectedCompanyId === company.id}
+                    onOpenChange={(open) => { setIsUploadShortlistOpen(open); if (open) setSelectedCompanyId(company.id); }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex items-center gap-2 border-gray-300">
+                        <Upload className="h-4 w-4" /> Upload Shortlist
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Upload Shortlist Excel</DialogTitle>
+                        <DialogDescription>Your Excel file must follow this exact template format:</DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4 space-y-4">
+                        {/* Template Preview Table */}
+                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-4 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Roll Number</th>
+                                <th className="px-4 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Email ID</th>
+                                <th className="px-4 py-2 text-left font-semibold text-gray-700">Name</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="text-gray-500 italic">
+                                <td className="px-4 py-2 border-t border-r border-gray-200">2021CS101</td>
+                                <td className="px-4 py-2 border-t border-r border-gray-200">student@iitk.ac.in</td>
+                                <td className="px-4 py-2 border-t border-gray-200">John Doe</td>
+                              </tr>
+                              <tr className="text-gray-400 italic">
+                                <td className="px-4 py-2 border-t border-r border-gray-200">2021EE202</td>
+                                <td className="px-4 py-2 border-t border-r border-gray-200">another@iitk.ac.in</td>
+                                <td className="px-4 py-2 border-t border-gray-200">Jane Smith</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-xs text-gray-500">Roll Number and Email ID are used to match students. Name is optional.</p>
+                        <input
+                          id={`student-excel-${company.id}`}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={(e) => { handleShortlistExcelUpload(e, company.id); setIsUploadShortlistOpen(false); }}
+                          className="hidden"
+                        />
+                        <Button
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                          onClick={() => document.getElementById(`student-excel-${company.id}`)?.click()}
+                        >
+                          <Upload className="h-4 w-4 mr-2" /> Select Excel File
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
             </Card>

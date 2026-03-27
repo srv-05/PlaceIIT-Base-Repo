@@ -394,7 +394,16 @@ export function StudentHomePage() {
   };
 
   const currentDay = driveDay ? `Day ${driveDay}` : (companies.length > 0 ? [...new Set(companies.map((c) => c.day))][0] : "Today");
-  const sortedCompanies = [...companies].sort((a, b) => a.priority - b.priority);
+  const slotOrder: Record<string, number> = { morning: 1, afternoon: 2 };
+  const sortedCompanies = [...companies].sort((a, b) => {
+    const dayA = parseInt(a.day.replace(/\D/g, "")) || 0;
+    const dayB = parseInt(b.day.replace(/\D/g, "")) || 0;
+    if (dayA !== dayB) return dayA - dayB;
+    const slotA = slotOrder[a.slot.toLowerCase()] ?? 99;
+    const slotB = slotOrder[b.slot.toLowerCase()] ?? 99;
+    if (slotA !== slotB) return slotA - slotB;
+    return a.priority - b.priority;
+  });
 
   // Filter by active drive state day/slot
   const activeCompanies = sortedCompanies.filter((c) => {

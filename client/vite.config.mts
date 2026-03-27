@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '');
-  const backendPort = env.PORT || 5000;
+  const backendPort = env.PORT || 5001;
   const targetUrl = env.VITE_API_BASE_URL || `http://localhost:${backendPort}`;
 
   return {
@@ -25,11 +25,6 @@ export default defineConfig(({ mode }) => {
           target: targetUrl,
           changeOrigin: true,
           secure: false,
-        },
-        '/socket.io': {
-          target: targetUrl,
-          changeOrigin: true,
-          ws: true,
         },
       },
     },

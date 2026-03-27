@@ -214,6 +214,44 @@ const toggleWalkIn = async (req, res) => {
       await Promise.allSettled(notifPromises);
     }
 
+    // Handle walk-in deactivation
+    if (!enabled && wasEnabled) {
+      const affectedEntries = await Queue.find({
+        companyId: company._id,
+        isWalkIn: true,
+        status: { $in: ["pending", "in_queue", "on_hold"] }
+      });
+
+      if (affectedEntries.length > 0) {
+        const entryIds = affectedEntries.map(e => e._id);
+
+        await Queue.updateMany(
+          { _id: { $in: entryIds } },
+          { $set: { status: "exited", completedAt: new Date() } }
+        );
+
+        // Emit queue updates and user updates
+        const { getIO } = require("../config/socket");
+        const io = getIO();
+        if (io) {
+          io.to(`company:${company._id}`).emit("queue:updated", { companyId: company._id });
+
+          for (const entry of affectedEntries) {
+            const st = await Student.findById(entry.studentId);
+            if (st && st.userId) {
+              io.to(`user:${st.userId}`).emit("status:updated", {
+                companyId: company._id,
+                status: "exited"
+              });
+            }
+          }
+        }
+
+        // Ensure positional rebalancing (optional but nice)
+        // Leaving it simple for now, resetting they are implicitly skipped anyway.
+      }
+    }
+
     res.json(company);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -88,8 +88,8 @@ const joinQueue = async (studentId, companyId, round = "Round 1", isWalkIn = fal
       } else {
         throw new Error("You already have an active request for this round");
       }
-    } else if (TERMINAL_STATUSES.includes(existing.status) || isStaleWalkIn) {
-      // Terminal entry exists or it's a stale walk-in entry — remove so we can create fresh pending 
+    } else {
+      // Any non-active entry (terminal, not_joined, on_hold, stale walk-in, etc.) — remove so we can create fresh pending
       await Queue.findByIdAndDelete(existing._id);
     }
   }
@@ -250,7 +250,11 @@ const leaveQueue = async (studentId, companyId, round = "Round 1") => {
     roundId: entry.roundId,
   }));
 
-  await Queue.deleteMany({ _id: { $in: affectedScopes.map((entry) => entry.id) } });
+  // Soft-exit: set status to EXITED instead of deleting, so completed entries for prior rounds survive
+  await Queue.updateMany(
+    { _id: { $in: affectedScopes.map((entry) => entry.id) } },
+    { $set: { status: STUDENT_STATUS.EXITED, completedAt: new Date() } }
+  );
 
   for (const removedEntry of affectedScopes) {
     await recalculateQueuePositions(
@@ -287,19 +291,19 @@ const acceptQueueRequest = async (studentId, companyId, round = "Round 1") => {
   }).populate("studentId");
   if (!entry) throw new Error("No pending request found for this student");
 
-  // Resolve active Round
-  const company = await Company.findById(companyId);
-  const currentRoundNum = company?.currentRound || 1;
-  let activeRound = await InterviewRound.findOne({ companyId, roundNumber: currentRoundNum });
+  // Derive the round number from the entry's own round string (e.g. "Round 2" → 2)
+  const match = (entry.round || "Round 1").match(/(\d+)/);
+  const entryRoundNum = match ? Number(match[1]) : 1;
+  let activeRound = await InterviewRound.findOne({ companyId, roundNumber: entryRoundNum });
   if (!activeRound) {
     activeRound = await InterviewRound.create({
       companyId,
-      roundNumber: currentRoundNum,
-      roundName: `Round ${currentRoundNum}`,
+      roundNumber: entryRoundNum,
+      roundName: `Round ${entryRoundNum}`,
     });
   }
   entry.roundId = activeRound._id;
-  entry.round = activeRound.roundName || `Round ${activeRound.roundNumber}`;
+  // Preserve the entry's original round — do NOT overwrite with company.currentRound
 
   // Assign position
   const lastEntry = await Queue.findOne({
@@ -427,8 +431,8 @@ const getQueue = async (companyId) => {
 /* ─────────────────────────────────────────────────────────
    getPendingRequests — pending entries for a company
 ─────────────────────────────────────────────────────────── */
-const getPendingRequests = async (companyId, round = "Round 1") => {
-  return Queue.find({ companyId, round, status: STUDENT_STATUS.PENDING })
+const getPendingRequests = async (companyId) => {
+  return Queue.find({ companyId, status: STUDENT_STATUS.PENDING })
     .populate({
       path: "studentId",
       populate: { path: "userId", select: "email" },

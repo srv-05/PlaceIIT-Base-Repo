@@ -896,8 +896,7 @@ const promoteStudentsViaExcel = async (req, res) => {
 // @route   GET /api/coco/company/:companyId/pending
 const getPendingRequests = async (req, res) => {
   try {
-    const { round = "Round 1" } = req.query;
-    const entries = await queueService.getPendingRequests(req.params.companyId, round);
+    const entries = await queueService.getPendingRequests(req.params.companyId);
     res.json(entries);
   } catch (err) {
     res.status(500).json({ message: err.message });

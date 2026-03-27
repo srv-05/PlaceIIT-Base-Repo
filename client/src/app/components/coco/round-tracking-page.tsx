@@ -695,7 +695,8 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
                     <div>
                       <p className="font-semibold text-sm text-gray-900">{student.name ?? "—"}</p>
                       <p className="text-xs text-gray-500">{student.rollNumber ?? ""}</p>
-                      {entry.isWalkIn && <span className="text-xs text-green-600 font-medium">Walk-in</span>}
+                      <span className="text-xs text-blue-600 font-medium">{entry.round}</span>
+                      {entry.isWalkIn && <span className="text-xs text-green-600 font-medium ml-2">Walk-in</span>}
                     </div>
                     <div className="flex gap-2">
                       <Button

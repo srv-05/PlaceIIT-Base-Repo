@@ -507,7 +507,9 @@ export function StudentHomePage() {
           <Badge className="ml-3 bg-green-100 text-green-800">Open for All</Badge>
         </h2>
         {(() => {
+          const visibleCompanyKeys = new Set(companies.map((c) => `${c.id}-${c.round}`));
           const activeWalkins = walkinCompanies.filter((c) => {
+            if (visibleCompanyKeys.has(`${c.id}-${c.round}`)) return false;
             if (driveDay != null && c.day !== `Day ${driveDay}`) return false;
             if (driveSlot && c.slot !== driveSlot) return false;
             return true;

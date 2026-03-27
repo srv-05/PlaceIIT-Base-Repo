@@ -8,6 +8,7 @@ const path = require("path");
 const fs = require("fs");
 const { sortCompaniesByPriority, buildPriorityMap } = require("../utils/priorityHelper");
 const queueService = require("../services/queue.service");
+const { STUDENT_STATUS } = require("../utils/constants");
 
 // @desc    Get student profile
 // @route   GET /api/student/profile
@@ -110,12 +111,45 @@ const getMyCompanies = async (req, res) => {
     if (!student) return res.status(404).json({ message: "Student not found" });
 
     const priorityMap = buildPriorityMap(student.priorityOrder);
-    const sorted = sortCompaniesByPriority(
+    const sortedShortlisted = sortCompaniesByPriority(
       student.shortlistedCompanies.map((c) => ({ ...c.toObject(), companyId: c._id })),
       priorityMap
     );
 
-    const allCompanies = sorted;
+    // Accepted walk-ins should stay visible on the student's main company feed
+    // even though they are not added to shortlist membership.
+    const trackedWalkInEntries = await Queue.find({
+      studentId: student._id,
+      isWalkIn: true,
+      status: {
+        $in: [
+          STUDENT_STATUS.IN_QUEUE,
+          STUDENT_STATUS.IN_INTERVIEW,
+          STUDENT_STATUS.ON_HOLD,
+          STUDENT_STATUS.COMPLETED,
+          STUDENT_STATUS.OFFER_GIVEN,
+        ],
+      },
+    }).populate("companyId");
+
+    const companyMap = new Map(
+      sortedShortlisted.map((company) => [String(company._id), company])
+    );
+
+    let nextWalkInPriority = sortedShortlisted.length + 1;
+    trackedWalkInEntries.forEach((entry) => {
+      if (!entry.companyId) return;
+      const companyId = String(entry.companyId._id);
+      if (!companyMap.has(companyId)) {
+        companyMap.set(companyId, {
+          ...entry.companyId.toObject(),
+          companyId: entry.companyId._id,
+          priorityOrder: nextWalkInPriority++,
+        });
+      }
+    });
+
+    const allCompanies = Array.from(companyMap.values());
 
     // Attach queue info for each company and expand into distinct round tiles
     const result = await Promise.all(

@@ -108,7 +108,7 @@ const register = async (req, res) => {
 // @access  Public
 const sendOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, role } = req.body;
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -117,6 +117,14 @@ const sendOtp = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({ message: "No account found with this email address" });
+    }
+
+    // Validate role: map frontend 'apc' to backend 'admin'
+    if (role) {
+      const mappedRole = role === 'apc' ? ROLES.ADMIN : role;
+      if (user.role !== mappedRole) {
+        return res.status(404).json({ message: "No account found with this email address" });
+      }
     }
 
     if (!user.isActive) {
@@ -144,7 +152,7 @@ const sendOtp = async (req, res) => {
 // @access  Public
 const verifyOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, role } = req.body;
 
     if (!email || !otp) {
       return res.status(400).json({ message: "Email and OTP are required" });
@@ -153,6 +161,14 @@ const verifyOtp = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !user.otpCode) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Validate role: map frontend 'apc' to backend 'admin'
+    if (role) {
+      const mappedRole = role === 'apc' ? ROLES.ADMIN : role;
+      if (user.role !== mappedRole) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
     }
 
     if (user.otpExpiry < new Date()) {
@@ -174,7 +190,7 @@ const verifyOtp = async (req, res) => {
 // @access  Public
 const resetPassword = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const { email, otp, newPassword, role } = req.body;
 
     if (!email || !otp || !newPassword) {
       return res.status(400).json({ message: "Email, OTP and new password are required" });
@@ -187,6 +203,14 @@ const resetPassword = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !user.otpCode) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Validate role: map frontend 'apc' to backend 'admin'
+    if (role) {
+      const mappedRole = role === 'apc' ? ROLES.ADMIN : role;
+      if (user.role !== mappedRole) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
     }
 
     if (user.otpExpiry < new Date()) {

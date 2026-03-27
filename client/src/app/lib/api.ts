@@ -101,22 +101,22 @@ export const authApi = {
         }),
 
     forgotPassword: {
-        sendOtp: (email: string) =>
+        sendOtp: (email: string, role?: string) =>
             request<{ message: string }>("/auth/forgot-password/send-otp", {
                 method: "POST",
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, role }),
             }),
 
-        verifyOtp: (email: string, otp: string) =>
+        verifyOtp: (email: string, otp: string, role?: string) =>
             request<{ message: string }>("/auth/forgot-password/verify-otp", {
                 method: "POST",
-                body: JSON.stringify({ email, otp }),
+                body: JSON.stringify({ email, otp, role }),
             }),
 
-        resetPassword: (email: string, otp: string, newPassword: string) =>
+        resetPassword: (email: string, otp: string, newPassword: string, role?: string) =>
             request<{ message: string }>("/auth/forgot-password/reset", {
                 method: "POST",
-                body: JSON.stringify({ email, otp, newPassword }),
+                body: JSON.stringify({ email, otp, newPassword, role }),
             }),
     },
 };

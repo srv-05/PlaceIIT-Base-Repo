@@ -34,7 +34,7 @@ export function ForgotPassword({ role, onBack }: ForgotPasswordProps) {
 
     setLoading(true);
     try {
-      await authApi.forgotPassword.sendOtp(email);
+      await authApi.forgotPassword.sendOtp(email, role);
       setStep(2);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send OTP");
@@ -54,7 +54,7 @@ export function ForgotPassword({ role, onBack }: ForgotPasswordProps) {
 
     setLoading(true);
     try {
-      await authApi.forgotPassword.verifyOtp(email, otp);
+      await authApi.forgotPassword.verifyOtp(email, otp, role);
       setStep(3);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "OTP verification failed");
@@ -79,7 +79,7 @@ export function ForgotPassword({ role, onBack }: ForgotPasswordProps) {
 
     setLoading(true);
     try {
-      await authApi.forgotPassword.resetPassword(email, otp, newPassword);
+      await authApi.forgotPassword.resetPassword(email, otp, newPassword, role);
       setSuccess(true);
       setTimeout(() => onBack(), 2500);
     } catch (err: unknown) {
@@ -94,7 +94,7 @@ export function ForgotPassword({ role, onBack }: ForgotPasswordProps) {
     setOtp("");
     setLoading(true);
     try {
-      await authApi.forgotPassword.sendOtp(email);
+      await authApi.forgotPassword.sendOtp(email, role);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to resend OTP");
     } finally {

@@ -33,7 +33,24 @@ const getQueueEntryPriority = (entry) => {
 const getAssignedCompany = async (req, res) => {
   try {
     const coco = await Coordinator.findOne({ userId: req.user.id }).populate("assignedCompanies");
-    res.json(coco?.assignedCompanies || []);
+    if (!coco) return res.json([]);
+
+    const DriveState = require("../models/DriveState.model");
+    const driveState = await DriveState.findOne();
+    if (!driveState || driveState.currentDay == null || !driveState.currentSlot) {
+      return res.json([]); // Fail-safe: treats as not assigned if drive state is missing
+    }
+
+    const currentDay = driveState.currentDay;
+    const currentSlot = driveState.currentSlot;
+
+    // Strict slot-day COCO assignment logic
+    // A COCO is only assigned if the company day+slot matches the current active day+slot
+    const validAssigned = coco.assignedCompanies.filter(c => 
+      c.day === currentDay && c.slot === currentSlot
+    );
+
+    res.json(validAssigned);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

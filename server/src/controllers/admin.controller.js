@@ -164,22 +164,23 @@ const getStudentCompanies = async (req, res) => {
 const getCocos = async (req, res) => {
   try {
     const { day, slot } = req.query;
+    let matchCondition = {};
+    if (day) matchCondition.day = Number(day);
+    if (slot) matchCondition.slot = slot;
+
     const cocos = await Coordinator.find()
       .populate("userId", "email instituteId")
-      .populate("assignedCompanies", "name day slot");
+      .populate({
+        path: "assignedCompanies",
+        select: "name day slot",
+        match: Object.keys(matchCondition).length > 0 ? matchCondition : undefined
+      });
+
     // Attach email to top-level for client convenience
     const result = cocos.map((c) => {
       const obj = c.toObject();
       obj.email = obj.userId?.email || "";
       obj.instituteId = obj.userId?.instituteId || "";
-      // If day/slot filters provided, only include matching assigned companies
-      if (day || slot) {
-        obj.assignedCompanies = (obj.assignedCompanies || []).filter((comp) => {
-          if (day && comp.day !== Number(day)) return false;
-          if (slot && comp.slot !== slot) return false;
-          return true;
-        });
-      }
       return obj;
     });
     res.json(result);

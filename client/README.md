@@ -65,7 +65,7 @@ bun run dev
 The app will be available at **http://localhost:5173**.
 
 > The Vite dev server automatically proxies `/api/*` and `/socket.io/*` requests
-> to the backend at `http://localhost:5000`. Make sure the server is running.
+> to the backend at `http://localhost:5001`. Make sure the server is running.
 
 ---
 
@@ -105,13 +105,13 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:5001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /socket.io/ {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:5001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

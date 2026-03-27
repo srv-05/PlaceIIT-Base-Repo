@@ -92,7 +92,7 @@ cp .env.example .env
 Edit `.env` with your values:
 
 ```env
-PORT=5000
+PORT=5001
 MONGO_URI=mongodb://localhost:27017/placement_platform
 JWT_SECRET=your_secure_random_secret_here
 JWT_EXPIRES_IN=7d
@@ -122,11 +122,11 @@ This creates three test accounts:
 bun run dev
 ```
 
-The server starts at **http://localhost:5000** with hot-reload enabled.
+The server starts at **http://localhost:5001** with hot-reload enabled.
 
 Verify it's running:
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:5001/api/health
 # → {"status":"OK","timestamp":"..."}
 ```
 
@@ -282,7 +282,7 @@ mongoimport --uri="mongodb://localhost:27017/placement_platform" --collection=us
 ### 1. Set environment variables
 
 ```env
-PORT=5000
+PORT=5001
 MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/placement_platform
 JWT_SECRET=a_very_long_secure_random_string
 JWT_EXPIRES_IN=7d
@@ -322,14 +322,14 @@ COPY package.json bun.lock ./
 RUN bun install --production
 COPY src ./src
 COPY uploads ./uploads
-EXPOSE 5000
+EXPOSE 5001
 CMD ["bun", "src/server.js"]
 ```
 
 ```bash
 docker build -t placeiit-server .
 docker run -d --name placeiit-api \
-  -p 5000:5000 \
+  -p 5001:5001 \
   -e MONGO_URI=mongodb://host.docker.internal:27017/placement_platform \
   -e JWT_SECRET=your_secret \
   -e CLIENT_URL=http://localhost:5173 \
@@ -340,7 +340,7 @@ docker run -d --name placeiit-api \
 
 ```nginx
 upstream placeiit_api {
-    server 127.0.0.1:5000;
+    server 127.0.0.1:5001;
 }
 
 server {

@@ -1,6 +1,6 @@
 /**
  * API Service Layer — centralised HTTP client for the PlaceIIT backend.
- * All requests go through the Vite proxy (/api → http://localhost:5000/api).
+ * All requests go through the Vite proxy (/api → http://localhost:5001/api).
  */
 
 const API_BASE = "/api";

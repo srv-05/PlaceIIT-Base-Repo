@@ -9,6 +9,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      closeButton
       className="toaster group"
       style={
         {
@@ -17,6 +18,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-border": "var(--border)",
         } as React.CSSProperties
       }
+      toastOptions={{
+        closeButtonAriaLabel: "Close notification",
+      }}
       {...props}
     />
   );

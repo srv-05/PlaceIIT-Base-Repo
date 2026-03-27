@@ -303,7 +303,11 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
       setSearchResults(prev => prev.filter(s => (s._id || s.id) !== studentId));
       await fetchData();
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to add student to queue");
+      toast.error(err.message ?? "Failed to add student to queue", {
+        description: err.data?.conflictCompanyName
+          ? `${studentName} is already in ${err.data.conflictCompanyName}'s queue.`
+          : undefined,
+      });
     } finally {
       setAddingStudentId(null);
     }
@@ -990,16 +994,24 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
                 <div className="space-y-4 pt-4">
                   <div className="flex gap-3 items-end">
                     <div className="flex-1">
-                      <label className="text-xs text-gray-500 mb-1 block">Search Student</label>
+                      <label className="text-xs text-gray-500 mb-1 block">Student Name / Roll Number</label>
                       <Input placeholder="Search name or roll number..." value={studentSearchQuery} onChange={(e) => setStudentSearchQuery(e.target.value)} />
                     </div>
-                    <div className="w-24">
+                    <div className="w-32">
                       <label className="text-xs text-gray-500 mb-1 block">Round</label>
-                      <Input type="number" min="1" value={queueRoundInput} onChange={(e) => setQueueRoundInput(e.target.value)} />
+                      <Select value={queueRoundInput} onValueChange={setQueueRoundInput}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Round" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: Math.max(company?.totalRounds || 0, 3) }, (_, i) => i + 1).map((r) => (
+                            <SelectItem key={r} value={String(r)}>
+                              Round {r}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Button onClick={handleSearchStudents} disabled={searchingStudents} className="bg-green-600 hover:bg-green-700 text-white min-w-[80px]">
-                      {searchingStudents ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                    </Button>
                   </div>
                   <div className="max-h-64 overflow-y-auto space-y-2">
                     {searchResults.map((s: any) => (

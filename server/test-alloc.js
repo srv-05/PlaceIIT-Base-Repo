@@ -2,7 +2,7 @@ const http = require('http');
 
 const req = http.request({
   hostname: '127.0.0.1',
-  port: 5000,
+  port: 5001,
   path: '/api/auth/login',
   method: 'POST',
   headers: { 'Content-Type': 'application/json' }
@@ -15,7 +15,7 @@ const req = http.request({
     
     const allocReq = http.request({
       hostname: '127.0.0.1',
-      port: 5000,
+      port: 5001,
       path: '/api/admin/auto-allocate-cocos',
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token }

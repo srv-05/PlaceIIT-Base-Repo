@@ -7,7 +7,12 @@ const { getIO } = require("../config/socket");
 const InterviewRound = require("../models/InterviewRound.model");
 
 // Statuses that mean a student is "actively" occupying a slot
-const ACTIVE_STATUSES = [STUDENT_STATUS.PENDING, STUDENT_STATUS.IN_QUEUE, STUDENT_STATUS.IN_INTERVIEW];
+const ACTIVE_STATUSES = [
+  STUDENT_STATUS.PENDING,
+  STUDENT_STATUS.IN_QUEUE,
+  STUDENT_STATUS.IN_INTERVIEW,
+  STUDENT_STATUS.ON_HOLD,
+];
 const TERMINAL_STATUSES = [STUDENT_STATUS.COMPLETED, STUDENT_STATUS.REJECTED, STUDENT_STATUS.EXITED, STUDENT_STATUS.OFFER_GIVEN];
 
 const hasInterviewHistoryForCompany = async (studentId, companyId) => {

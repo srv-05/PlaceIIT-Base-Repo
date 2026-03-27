@@ -406,8 +406,24 @@ const addStudentToRound = async (req, res) => {
       resolvedRoundId = resolvedRoundObj._id;
     }
 
-    // Backend only allows "not_joined" for newly added students
-    let finalStatus = "not_joined";
+    const activeQueueElsewhere = await Queue.findOne({
+      studentId,
+      companyId: { $ne: companyId },
+      status: { $in: ["pending", "in_queue", "in_interview", "on_hold"] },
+    }).populate("companyId", "name");
+
+    if (activeQueueElsewhere) {
+      const conflictCompanyName = activeQueueElsewhere.companyId?.name || "another company";
+      return res.status(409).json({
+        message: `Student is already in the queue for ${conflictCompanyName}.`,
+        code: "QUEUE_CONFLICT",
+        conflictCompanyId: activeQueueElsewhere.companyId?._id,
+        conflictCompanyName,
+        conflictRound: activeQueueElsewhere.round,
+      });
+    }
+
+    let finalStatus = "in_queue";
 
     const roundNameStr = resolvedRoundObj ? (resolvedRoundObj.roundName || `Round ${resolvedRoundObj.roundNumber}`) : "Round 1";
 

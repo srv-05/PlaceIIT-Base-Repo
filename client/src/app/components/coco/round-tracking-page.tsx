@@ -358,7 +358,11 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
       setIsAddStudentOpen(false);
       await fetchData();
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to add student");
+      toast.error(err.message ?? "Failed to add student", {
+        description: err.data?.conflictCompanyName
+          ? `${selectedStudent?.name ?? "Student"} is already in ${err.data.conflictCompanyName}'s queue.`
+          : undefined,
+      });
     } finally {
       setUploadingExcel(false);
     }

@@ -109,7 +109,7 @@ export function StudentMyCompaniesPage() {
   useDriveEffect(() => {
     studentApi.getDriveState().then((ds: any) => {
       if (ds) { setDriveDay(ds.currentDay ?? null); setDriveSlot(ds.currentSlot ?? null); }
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   // Real-time refresh when status changes (COCO accepts/rejects)
@@ -307,17 +307,14 @@ export function StudentMyCompaniesPage() {
     if (s === "in_queue" || s === "on_hold") {
       return (
         <div className="flex items-center gap-3">
-          <div className={`flex flex-col items-center rounded-md px-3 py-1 mr-2 ${
-            s === "on_hold" ? "bg-red-50 border border-red-200" : "bg-blue-50 border border-blue-200"
-          }`}>
-            <span className={`text-[10px] uppercase font-bold tracking-wider ${
-              s === "on_hold" ? "text-red-600" : "text-blue-600"
+          <div className={`flex flex-col items-center rounded-md px-3 py-1 mr-2 ${s === "on_hold" ? "bg-red-50 border border-red-200" : "bg-blue-50 border border-blue-200"
             }`}>
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${s === "on_hold" ? "text-red-600" : "text-blue-600"
+              }`}>
               {s === "on_hold" ? "Flagged" : "Position"}
             </span>
-            <span className={`text-lg font-black leading-none mt-0.5 ${
-              s === "on_hold" ? "text-red-900" : "text-blue-900"
-            }`}>
+            <span className={`text-lg font-black leading-none mt-0.5 ${s === "on_hold" ? "text-red-900" : "text-blue-900"
+              }`}>
               {company.queuePosition ? `#${company.queuePosition}` : "—"}
             </span>
           </div>
@@ -433,9 +430,6 @@ export function StudentMyCompaniesPage() {
           <Building2 className="h-8 w-8 mr-3 text-indigo-600" />
           My Companies
         </h1>
-        <Badge className="bg-indigo-100 text-indigo-800 text-sm px-4 py-2">
-          {companies.length} Shortlisted
-        </Badge>
       </div>
 
       {/* Filters */}

@@ -291,7 +291,6 @@ export function StudentHomePage() {
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <CardTitle className="text-xl text-gray-900">{company.name}</CardTitle>
                   {!company.isWalkin && <Badge variant="outline" className="text-xs">{company.round}</Badge>}
-                  {!company.isWalkin && <Badge variant="outline" className="text-xs">Priority {company.priority}</Badge>}
                   {getStatusBadge(s)}
                 </div>
                 {company.role && <p className="text-sm text-gray-600 mb-1">{company.role}</p>}
@@ -336,17 +335,14 @@ export function StudentHomePage() {
               )}
               {(s === "in_queue" || s === "in-queue" || s === "on_hold") && (
                 <div className="flex items-center gap-3">
-                  <div className={`flex flex-col items-center rounded-md px-3 py-1 mr-2 ${
-                    s === "on_hold" ? "bg-red-50 border border-red-200" : "bg-blue-50 border border-blue-200"
-                  }`}>
-                    <span className={`text-[10px] uppercase font-bold tracking-wider ${
-                      s === "on_hold" ? "text-red-600" : "text-blue-600"
+                  <div className={`flex flex-col items-center rounded-md px-3 py-1 mr-2 ${s === "on_hold" ? "bg-red-50 border border-red-200" : "bg-blue-50 border border-blue-200"
                     }`}>
+                    <span className={`text-[10px] uppercase font-bold tracking-wider ${s === "on_hold" ? "text-red-600" : "text-blue-600"
+                      }`}>
                       {s === "on_hold" ? "Flagged" : "Position"}
                     </span>
-                    <span className={`text-lg font-black leading-none mt-0.5 ${
-                      s === "on_hold" ? "text-red-900" : "text-blue-900"
-                    }`}>
+                    <span className={`text-lg font-black leading-none mt-0.5 ${s === "on_hold" ? "text-red-900" : "text-blue-900"
+                      }`}>
                       {company.queuePosition ? `#${company.queuePosition}` : "—"}
                     </span>
                   </div>

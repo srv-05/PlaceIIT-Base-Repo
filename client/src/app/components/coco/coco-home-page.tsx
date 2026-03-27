@@ -154,7 +154,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
       id: raw._id ?? raw.id ?? raw.student?._id ?? String(i),
       name: raw.name ?? raw.student?.name ?? "—",
       rollNo: raw.rollNumber ?? raw.student?.rollNumber ?? "—",
-      contact: raw.contact ?? raw.student?.contact ?? "—",
+      contact: raw.phone ?? raw.contact ?? raw.student?.phone ?? raw.student?.contact ?? "—",
       emergencyContact: raw.emergencyContact?.phone ?? raw.student?.emergencyContact?.phone ?? "—",
       status: statusMap[statusRaw] ?? "unassigned",
       round: deriveRoundNumber(raw),
@@ -233,7 +233,7 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
     cocoApi.getDriveState().then((data: any) => {
       setDriveDay(data.currentDay ?? null);
       setDriveSlot(data.currentSlot ?? null);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {

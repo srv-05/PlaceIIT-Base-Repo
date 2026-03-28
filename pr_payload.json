@@ -1,6 +1,0 @@
-{
-  "title": "UI Alignment, Phone Validation, and Roll Number Autocomplete",
-  "body": "This PR includes the following enhancements:\n1. APC Portal UI Alignment (Add Student dialog refactored)\n2. 10-digit Phone Validation enforced system-wide\n3. Roll Number Autocomplete for manual student assignment\n\nMerge conflicts resolved and all features verified.",
-  "head": "Coco-updates",
-  "base": "main"
-}

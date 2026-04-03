@@ -510,9 +510,10 @@ const addStudentToRound = async (req, res) => {
       resolvedRoundId = resolvedRoundObj._id;
     }
 
+    const mongoose = require("mongoose");
     const activeQueueElsewhere = await Queue.findOne({
       studentId,
-      companyId: { $ne: companyId },
+      companyId: { $ne: new mongoose.Types.ObjectId(companyId) },
       status: { $in: ["pending", "in_queue", "in_interview", "on_hold"] },
     }).populate("companyId", "name");
 
@@ -540,7 +541,7 @@ const addStudentToRound = async (req, res) => {
     }
 
     if (queueEntry) {
-      if (queueEntry.roundId?.toString() === resolvedRoundId.toString() && ["in_queue", "in_interview", "on_hold", "not_joined"].includes(queueEntry.status)) {
+      if (queueEntry.roundId?.toString() === resolvedRoundId.toString() && ["pending", "in_queue", "in_interview", "on_hold", "not_joined"].includes(queueEntry.status)) {
         return res.status(400).json({ message: "Student is actively in this round's queue already." });
       }
 

@@ -151,6 +151,10 @@ export function CoCoHomePage({ companyName, onRoundTracking }: CoCoHomePageProps
       in_interview: "in-interview", interviewing: "in-interview", "in-interview": "in-interview",
       completed: "completed", done: "completed",
       unassigned: "unassigned",
+      pending: "in-queue",
+      on_hold: "in-queue",
+      on_hold_active: "in-queue",
+      not_joined: "unassigned",
     };
     return {
       id: raw._id ?? raw.id ?? raw.student?._id ?? String(i),

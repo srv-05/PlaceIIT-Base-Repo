@@ -458,14 +458,7 @@ export function RoundTrackingPage({ companyName, onBack }: RoundTrackingPageProp
     const inQueueFlagged = students.filter((s) => s.status === "on-hold").sort((a, b) => a.position - b.position);
     const inInterview = students.filter((s) => s.status === "in-interview").sort((a, b) => a.position - b.position);
     const completed = students.filter((s) => s.status === "completed").sort((a, b) => a.position - b.position);
-
-    const queueIds = [...inQueueActive, ...inQueueFlagged].map(s => s.id);
-    const interviewIds = inInterview.map(s => s.id);
-    const completedIds = completed.map(s => s.id);
-
-    const yetToInterview = shortlisted
-      .filter((s) => !queueIds.includes(s.id) && !interviewIds.includes(s.id) && !completedIds.includes(s.id))
-      .map((s) => ({ ...s, round, status: "yet-to-interview" as const }));
+    const yetToInterview = students.filter((s) => s.status === "yet-to-interview").sort((a, b) => a.position - b.position);
 
     return (
       <Card className="flex-1 min-h-0 min-w-[350px] overflow-hidden flex flex-col bg-gray-50/10 border shadow-sm ring-1 ring-gray-100 h-full">

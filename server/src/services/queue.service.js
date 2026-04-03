@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Queue = require("../models/Queue.model");
 const Company = require("../models/Company.model");
 const Student = require("../models/Student.model");
@@ -97,7 +98,7 @@ const joinQueue = async (studentId, companyId, round = "Round 1", isWalkIn = fal
   // Check if student already active in another company → conflict
   const activeElsewheres = await Queue.find({
     studentId,
-    companyId: { $ne: companyId },
+    companyId: { $ne: new mongoose.Types.ObjectId(companyId) },
     status: { $in: ACTIVE_STATUSES },
   }).populate("companyId", "name isWalkInEnabled");
 

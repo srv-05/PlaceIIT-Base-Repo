@@ -5,4 +5,5 @@ node_modules
 client/node_modules
 server/node_modules
 server/.env
+client/client_node_modules.tar.gz
 

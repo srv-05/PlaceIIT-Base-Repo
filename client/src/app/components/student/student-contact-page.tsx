@@ -34,6 +34,7 @@ export function StudentContactPage() {
   });
 
   const [previousQueries, setPreviousQueries] = useState<Query[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
 
   const fetchQueries = async () => {
     try {
@@ -49,10 +50,20 @@ export function StudentContactPage() {
           respondedByName: q.respondedByName ?? undefined,
         }))
       );
-    } catch (_) {}
+    } catch (_) { }
   };
 
-  useEffect(() => { fetchQueries(); }, []);
+  const fetchContacts = async () => {
+    try {
+      const data = (await studentApi.getContacts()) as any[];
+      setContacts(data);
+    } catch (_) { }
+  };
+
+  useEffect(() => {
+    fetchQueries();
+    fetchContacts();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,29 +77,7 @@ export function StudentContactPage() {
     }
   };
 
-  const contacts = [
-    {
-      role: "Placement Coordinator",
-      name: "Dr. Anita Sharma",
-      email: "placement@iit.ac.in",
-      phone: "+91 11 2659 1234",
-      availability: "Mon-Fri, 9:00 AM - 5:00 PM"
-    },
-    {
-      role: "Student Coordinator",
-      name: "Rahul Verma",
-      email: "student.coord@iit.ac.in",
-      phone: "+91 98765 12345",
-      availability: "Mon-Sat, 10:00 AM - 6:00 PM"
-    },
-    {
-      role: "Technical Support",
-      name: "Support Team",
-      email: "support@iit.ac.in",
-      phone: "+91 11 2659 5678",
-      availability: "24/7"
-    }
-  ];
+
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -204,15 +193,16 @@ export function StudentContactPage() {
                 <Mail className="h-5 w-5 text-indigo-600 mr-3 mt-1" />
                 <div>
                   <p className="font-medium text-gray-900">Email</p>
-                  <p className="text-sm text-gray-600">placement@iit.ac.in</p>
+                  <p className="text-sm text-gray-600">spooffice@iitk.ac.in</p>
                 </div>
               </div>
 
               <div className="flex items-start">
                 <Phone className="h-5 w-5 text-indigo-600 mr-3 mt-1" />
                 <div>
-                  <p className="font-medium text-gray-900">Phone</p>
-                  <p className="text-sm text-gray-600">+91 11 2659 1234</p>
+                  <p className="font-medium text-gray-900">Desk No.</p>
+                  <p className="text-sm text-gray-600">0512-259-4433/34</p>
+                  <p className="text-xs text-gray-500 mt-1">for main placement office contact us</p>
                 </div>
               </div>
 

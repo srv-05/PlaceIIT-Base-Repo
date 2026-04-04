@@ -7,7 +7,7 @@ const {
   joinQueue, joinWalkIn, leaveQueue, confirmSwitch, getWalkIns, getQueuePosition,
   getNotifications, markNotifRead, markAllNotifRead, clearAllNotifications,
   submitQuery, getMyQueries,
-  uploadResume
+  uploadResume, getContacts
 } = require("../controllers/student.controller");
 const { protect } = require("../middlewares/auth.middleware");
 const { authorize } = require("../middlewares/role.middleware");
@@ -47,5 +47,6 @@ router.post("/queries", submitQuery);
 router.get("/queries", getMyQueries);
 router.post("/resume", resumeUpload.single("resume"), uploadResume);
 router.get("/drive-state", getDriveState);
+router.get("/contacts", getContacts);
 
 module.exports = router;

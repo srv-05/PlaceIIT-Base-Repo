@@ -470,10 +470,37 @@ const clearAllNotifications = async (req, res) => {
 };
 
 
+// @desc    Get main admin and APC contacts
+// @route   GET /api/student/contacts
+const getContacts = async (req, res) => {
+  try {
+    const Apc = require("../models/Apc.model");
+    const apcs = await Apc.find().populate("userId", "email isMainAdmin");
+    const contacts = apcs.map((apc) => {
+      const isMainAdmin = apc.userId && apc.userId.isMainAdmin;
+      const role = isMainAdmin ? "Placement Coordinator" : "Student Coordinator";
+      const availability = isMainAdmin
+        ? "Mon-Fri, 9:00 AM - 5:00 PM"
+        : "Mon-Sat, 10:00 AM - 6:00 PM";
+      return {
+        role,
+        name: apc.name,
+        email: apc.userId?.email || "",
+        phone: apc.contact ? `+91 ${apc.contact}` : "N/A",
+        availability,
+      };
+    });
+    res.json(contacts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
 module.exports = {
   getProfile, updateProfile, getMyCompanies,
   joinQueue, joinWalkIn, leaveQueue, confirmSwitch, getWalkIns, getQueuePosition,
   getNotifications, markNotifRead, markAllNotifRead, clearAllNotifications,
   submitQuery, getMyQueries,
-  uploadResume, downloadResume
+  uploadResume, downloadResume, getContacts
 };

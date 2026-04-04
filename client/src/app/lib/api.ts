@@ -177,6 +177,7 @@ export const studentApi = {
         });
     },
     getDriveState: () => request("/student/drive-state"),
+    getContacts: () => request("/student/contacts"),
 };
 
 /* ═══════════════════════════════════════════════════════════

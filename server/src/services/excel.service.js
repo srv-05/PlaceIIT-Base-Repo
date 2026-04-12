@@ -157,7 +157,7 @@ const processShortlistExcel = async (uploadId, filePath, companyId) => {
       await sendNotification({
         recipientId: student.userId,
         senderModel: "User",
-        source: "company",
+        source: "apc",
         companyId: companyId,
         message: `You have been shortlisted for ${company.name}`,
         type: "general"

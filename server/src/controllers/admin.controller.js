@@ -598,7 +598,7 @@ const shortlistStudents = async (req, res) => {
         recipientId: s.userId,
         senderId: req.user.id,
         senderModel: "User",
-        source: "company",
+        source: "apc",
         companyId: companyId,
         message: `You have been shortlisted for ${company.name}`,
         type: "general"

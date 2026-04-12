@@ -146,7 +146,7 @@ export function ManageApcPage() {
   };
 
   const filteredApcs = apcs.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.instituteId?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -188,8 +188,8 @@ export function ManageApcPage() {
                     type="button"
                     onClick={() => setAddMethod(method)}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${addMethod === method
-                        ? "border-emerald-600 text-emerald-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700"
+                      ? "border-emerald-600 text-emerald-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
                   >
                     {method === "manual" ? "Manual Entry" : "Upload Excel"}
@@ -214,7 +214,7 @@ export function ManageApcPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone *</Label>
-                      <Input id="phone" placeholder="Enter 10-digit phone number" value={newApcPhone} onChange={(e) => setNewApcPhone(e.target.value)} />
+                      <Input id="phone" placeholder="Enter 10-digit phone number" inputMode="numeric" maxLength={10} value={newApcPhone} onChange={(e) => setNewApcPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
                     </div>
                     <p className="text-xs text-gray-500 mt-4">Username and random password will be auto-generated and sent via email.</p>
                   </div>

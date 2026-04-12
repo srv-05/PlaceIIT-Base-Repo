@@ -166,7 +166,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone" className="flex items-center"><Phone className="h-4 w-4 mr-2" />Phone Number</Label>
-              <Input id="phone" value={profileData.phone} onChange={set("phone")} disabled={!isEditing} />
+              <Input id="phone" value={profileData.phone} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 10); set("phone")({ target: { value: v } } as any); }} disabled={!isEditing} inputMode="numeric" maxLength={10} />
             </div>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
@@ -176,7 +176,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
             </div>
             <div className="space-y-2">
               <Label className="flex items-center"><Phone className="h-4 w-4 mr-2 text-red-500" />Emergency Contact Phone</Label>
-              <Input value={profileData.emergencyContactPhone} onChange={set("emergencyContactPhone")} disabled={!isEditing} placeholder="Phone number" />
+              <Input value={profileData.emergencyContactPhone} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 10); set("emergencyContactPhone")({ target: { value: v } } as any); }} disabled={!isEditing} placeholder="Phone number" inputMode="numeric" maxLength={10} />
             </div>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
@@ -186,7 +186,7 @@ export function StudentProfilePage({ rollNo }: { rollNo: string }) {
             </div>
             <div className="space-y-2">
               <Label className="flex items-center"><Phone className="h-4 w-4 mr-2 text-blue-500" />Friend Contact Phone</Label>
-              <Input value={profileData.friendContactPhone} onChange={set("friendContactPhone")} disabled={!isEditing} placeholder="Phone number" />
+              <Input value={profileData.friendContactPhone} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 10); set("friendContactPhone")({ target: { value: v } } as any); }} disabled={!isEditing} placeholder="Phone number" inputMode="numeric" maxLength={10} />
             </div>
           </div>
         </CardContent>

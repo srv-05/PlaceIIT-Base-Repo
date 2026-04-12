@@ -157,9 +157,10 @@ export function ChangePasswordRoute() {
                 <Input
                   id="emergency-contact-phone"
                   value={emergencyContactPhone}
-                  onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                  onChange={(e) => setEmergencyContactPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   placeholder="10-digit phone number"
                   inputMode="numeric"
+                  maxLength={10}
                   required
                 />
               </div>
@@ -180,10 +181,10 @@ export function ChangePasswordRoute() {
                 <Input
                   id="friend-contact-phone"
                   value={friendContactPhone}
-                  onChange={(e) => setFriendContactPhone(e.target.value)}
+                  onChange={(e) => setFriendContactPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   placeholder="10-digit phone number"
                   inputMode="numeric"
-
+                  maxLength={10}
                 />
               </div>
 

@@ -558,7 +558,7 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone *</Label>
-                      <Input id="phone" placeholder="Enter 10-digit phone number" value={newCoCoPhone} onChange={(e) => setNewCoCoPhone(e.target.value)} />
+                      <Input id="phone" placeholder="Enter 10-digit phone number" inputMode="numeric" maxLength={10} value={newCoCoPhone} onChange={(e) => setNewCoCoPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
                     </div>
                     <p className="text-xs text-gray-500 mt-4">Username (cocoX) and random password will be auto-generated and sent via email.</p>
                   </div>

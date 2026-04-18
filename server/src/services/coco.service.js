@@ -37,6 +37,10 @@ const createCoco = async (data) => {
   const existingRoll = await Coordinator.findOne({ rollNumber: finalRollNumber });
   if (existingRoll) throw new Error(`Coordinator already exists with Roll Number: ${finalRollNumber}`);
 
+  // Check if phone number is already used by another coordinator
+  const existingPhone = await Coordinator.findOne({ contact });
+  if (existingPhone) throw new Error(`A CoCo with phone number "${contact}" already exists`);
+
   let nextX = await Coordinator.countDocuments() + 1;
   let instituteId = `coco${nextX}`;
   while (await User.exists({ instituteId })) {

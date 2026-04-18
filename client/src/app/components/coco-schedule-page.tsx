@@ -36,7 +36,7 @@ export function CoCoSchedulePage({ coco, onBack }: CoCoSchedulePageProps) {
   // Convert to scheduleData format
   const scheduleData = Object.keys(groupedTasks).sort().map((dayLabel) => {
     const slots = groupedTasks[dayLabel].map((assignment) => ({
-      time: assignment.slot.toLowerCase() === "morning" ? "09:00 AM - 01:00 PM" : "02:00 PM - 06:00 PM",
+      time: assignment.slot.toLowerCase() === "morning" ? "Morning" : "Afternoon",
       company: assignment.name,
       venue: assignment.venue && assignment.venue !== "Not Assigned" ? assignment.venue : "Not Assigned",
       candidateCount: 0,

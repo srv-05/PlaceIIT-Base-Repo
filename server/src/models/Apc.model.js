@@ -7,6 +7,8 @@ const apcSchema = new mongoose.Schema(
     rollNumber: { type: String, unique: true },
     contact: { 
       type: String,
+      unique: true,
+      sparse: true,
       match: [/^\d{10}$/, "Phone number must be exactly 10 digits"]
     },
     assignedCompanies: [{ type: mongoose.Schema.Types.ObjectId, ref: "Company" }],

@@ -37,6 +37,10 @@ const createApc = async (data) => {
   const existingRoll = await Apc.findOne({ rollNumber: finalRollNumber });
   if (existingRoll) throw new Error(`APC already exists with Roll Number: ${finalRollNumber}`);
 
+  // Check if phone number is already used by another APC
+  const existingPhone = await Apc.findOne({ contact });
+  if (existingPhone) throw new Error(`An APC with phone number "${contact}" already exists`);
+
   let nextX = await Apc.countDocuments() + 1;
   let instituteId = `apc${nextX}`;
   while (await User.exists({ instituteId })) {

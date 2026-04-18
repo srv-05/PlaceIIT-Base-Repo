@@ -76,6 +76,11 @@ const addCompany = async (req, res) => {
     return res.status(400).json({ message: "Company name and venue cannot contain emojis" });
   }
   try {
+    // Check for duplicate company name (case-insensitive)
+    const existing = await Company.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }, isActive: true });
+    if (existing) {
+      return res.status(400).json({ message: `Company "${name.trim()}" already exists` });
+    }
     const company = await Company.create(req.body);
     await emitStatsUpdate();
     res.status(201).json(company);
@@ -270,6 +275,10 @@ const addStudent = async (req, res) => {
     // Check if student record already exists
     const existingStudent = await Student.findOne({ rollNumber: finalRollNumber });
     if (existingStudent) return res.status(400).json({ message: `Student with roll number "${finalRollNumber}" already exists` });
+
+    // Check if phone number is already used by another student
+    const existingPhone = await Student.findOne({ phone: phone.trim() });
+    if (existingPhone) return res.status(400).json({ message: `A student with phone number "${phone.trim()}" already exists` });
 
     const user = await User.create({
       instituteId,
@@ -1077,6 +1086,12 @@ const updateApcProfile = async (req, res) => {
     }
     if (phone && !/^\d{10}$/.test(phone.trim())) {
       return res.status(400).json({ message: "Phone number must be exactly 10 digits" });
+    }
+
+    // Check if phone number is already used by another APC
+    if (phone) {
+      const existingPhone = await Apc.findOne({ contact: phone.trim(), userId: { $ne: req.user.id } });
+      if (existingPhone) return res.status(400).json({ message: `An APC with phone number "${phone.trim()}" already exists` });
     }
 
     const user = await User.findById(req.user.id);

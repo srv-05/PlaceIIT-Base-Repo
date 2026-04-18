@@ -1033,6 +1033,13 @@ const updateCompanyVenue = async (req, res) => {
 const updateCocoProfile = async (req, res) => {
   try {
     const { name, contact } = req.body;
+
+    // Check if phone number is already used by another coordinator
+    if (contact !== undefined && contact) {
+      const existingPhone = await Coordinator.findOne({ contact, userId: { $ne: req.user.id } });
+      if (existingPhone) return res.status(400).json({ message: `A CoCo with phone number "${contact}" already exists` });
+    }
+
     const updated = await Coordinator.findOneAndUpdate(
       { userId: req.user.id },
       { ...(name !== undefined && { name }), ...(contact !== undefined && { contact }) },

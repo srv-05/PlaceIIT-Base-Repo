@@ -266,6 +266,13 @@ const processStudentExcel = async (uploadId, filePath) => {
         continue;
       }
 
+      // Check if phone number is already used by another student
+      const existingPhone = await Student.findOne({ phone: String(phone).trim() });
+      if (existingPhone) {
+        problemList.push(`Row ${i + 2}: A student with phone number ${phone} already exists`);
+        continue;
+      }
+
       const generatedPassword = crypto.randomBytes(4).toString("hex");
 
       const user = await User.create({

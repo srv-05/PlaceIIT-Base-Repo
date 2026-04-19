@@ -82,6 +82,16 @@ const addCompany = async (req, res) => {
     if (existing) {
       return res.status(400).json({ message: `Company "${name.trim()}" already exists` });
     }
+    // Check for duplicate venue in the same day and slot
+    const venueConflict = await Company.findOne({
+      day: Number(day),
+      slot,
+      venue: { $regex: new RegExp(`^${venue.trim()}$`, 'i') },
+      isActive: true
+    });
+    if (venueConflict) {
+      return res.status(400).json({ message: `Venue "${venue.trim()}" is already assigned to "${venueConflict.name}" on Day ${day}, ${slot} slot` });
+    }
     const company = await Company.create(req.body);
     await emitStatsUpdate();
     res.status(201).json(company);
@@ -104,6 +114,23 @@ const updateCompany = async (req, res) => {
     }
     const updateData = { ...req.body };
     if (venue !== undefined) updateData.venue = venue.trim();
+    // Check for duplicate venue in the same day and slot
+    const currentCompany = await Company.findById(req.params.id);
+    if (currentCompany) {
+      const checkDay = updateData.day !== undefined ? Number(updateData.day) : currentCompany.day;
+      const checkSlot = updateData.slot || currentCompany.slot;
+      const checkVenue = updateData.venue !== undefined ? updateData.venue : currentCompany.venue;
+      const venueConflict = await Company.findOne({
+        _id: { $ne: req.params.id },
+        day: checkDay,
+        slot: checkSlot,
+        venue: { $regex: new RegExp(`^${checkVenue}$`, 'i') },
+        isActive: true
+      });
+      if (venueConflict) {
+        return res.status(400).json({ message: `Venue "${checkVenue}" is already assigned to "${venueConflict.name}" on Day ${checkDay}, ${checkSlot} slot` });
+      }
+    }
     const company = await Company.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json(company);
   } catch (err) {

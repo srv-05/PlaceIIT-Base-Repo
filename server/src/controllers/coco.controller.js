@@ -1064,6 +1064,18 @@ const updateCompanyVenue = async (req, res) => {
     const oldVenue = oldCompany.venue || "Not Set";
     const newVenue = venue.trim();
 
+    // Check for duplicate venue in the same day and slot
+    const venueConflict = await Company.findOne({
+      _id: { $ne: req.params.companyId },
+      day: oldCompany.day,
+      slot: oldCompany.slot,
+      venue: { $regex: new RegExp(`^${newVenue}$`, 'i') },
+      isActive: true
+    });
+    if (venueConflict) {
+      return res.status(400).json({ message: `Venue "${newVenue}" is already assigned to "${venueConflict.name}" on Day ${oldCompany.day}, ${oldCompany.slot} slot` });
+    }
+
     const company = await Company.findByIdAndUpdate(
       req.params.companyId,
       { venue: newVenue },

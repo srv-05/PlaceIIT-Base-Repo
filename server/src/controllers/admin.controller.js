@@ -389,14 +389,22 @@ const assignCoco = async (req, res) => {
   try {
     const { cocoId, companyId } = req.body;
 
-    // Check if coco is already assigned to ANY company (other than this one maybe?)
+    const targetCompany = await Company.findById(companyId);
+    if (!targetCompany) return res.status(404).json({ message: "Company not found" });
+
     const coco = await Coordinator.findById(cocoId);
     if (!coco) return res.status(404).json({ message: "CoCo not found" });
 
-    const otherCompanies = coco.assignedCompanies.filter(id => id.toString() !== companyId);
-    if (otherCompanies.length > 0) {
+    const assignedComps = await Company.find({ _id: { $in: coco.assignedCompanies } });
+    const conflict = assignedComps.find(c =>
+      c._id.toString() !== companyId &&
+      c.day === targetCompany.day &&
+      c.slot === targetCompany.slot
+    );
+
+    if (conflict) {
       return res.status(400).json({
-        message: "This CoCo is already allocated to another company. Please remove them from the old company first."
+        message: `This CoCo is already allocated to ${conflict.name} on the same slot (Day ${conflict.day} ${conflict.slot}). Please remove them from there first.`
       });
     }
 

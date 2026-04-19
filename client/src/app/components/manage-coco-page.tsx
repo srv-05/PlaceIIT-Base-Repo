@@ -844,8 +844,7 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
                             // Available cocos: only globally unassigned + the one currently in this slot
                             const availableCocos = cocos.filter(c => {
                               if (c.id === slotCocoId) return true; // current assignment
-                              if (isCocoAssigned(c.id)) return false; // assigned elsewhere globally
-                              // Also check day/slot conflict
+                              // Check day/slot conflict
                               if (isCocoBusy(c.id, company.day, company.slot)) return false;
                               return true;
                             });
@@ -923,8 +922,9 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
                     {cocos.map(coco => {
                       const isSelectedElsewhere = selectedCocos.some((v, i) => v === coco.id && i !== idx);
                       if (isSelectedElsewhere) return null;
-                      // Only show globally unassigned cocos
-                      if (isCocoAssigned(coco.id) && !selectedCocos.includes(coco.id)) return null;
+
+                      const comp = companies.find(c => c.id === assigningCompanyId);
+                      if (comp && isCocoBusy(coco.id, comp.day, comp.slot) && !selectedCocos.includes(coco.id)) return null;
                       return (
                         <SelectItem key={coco.id} value={coco.id}>
                           {coco.name} {coco.instituteId ? `(${coco.instituteId})` : ""}

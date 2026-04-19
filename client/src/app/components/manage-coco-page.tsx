@@ -851,7 +851,7 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
                             });
                             return (
                               <div key={slotIdx} className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 font-medium w-14 shrink-0">Slot {slotIdx + 1}:</span>
+                                <span className="text-xs text-gray-500 font-medium w-14 shrink-0">CoCo {slotIdx + 1}:</span>
                                 <Select
                                   value={slotCocoId || "none"}
                                   onValueChange={(value) => {

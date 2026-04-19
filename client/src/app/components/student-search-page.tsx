@@ -40,6 +40,7 @@ export function StudentSearchPage({ onStudentClick, fetchApi, allowAdd = false }
   const [hasSearched, setHasSearched] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     rollNumber: "",
@@ -171,6 +172,19 @@ export function StudentSearchPage({ onStudentClick, fetchApi, allowAdd = false }
       toast.error(err.message ?? "Upload failed");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    try {
+      setDeletingId(id);
+      await adminApi.deleteStudent(id);
+      setStudents((prev) => prev.filter((s) => s.id !== id));
+      toast.success("Student deleted successfully");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete student");
+    } finally {
+      setDeletingId(null);
     }
   };
   return (
@@ -408,6 +422,18 @@ export function StudentSearchPage({ onStudentClick, fetchApi, allowAdd = false }
                     <p className="text-sm text-gray-500 mt-1.5 font-medium">Roll No: {student.rollNo}</p>
                   </div>
 
+                  </div>
+                  {allowAdd && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1 -mr-1"
+                      disabled={deletingId === student.id}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteStudent(student.id); }}
+                    >
+                      {deletingId === student.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>

@@ -8,7 +8,7 @@ const {
   uploadStudentExcel,
   uploadCocoRequirementsExcel, getUploadStatus, getStudentCompanies,
   shortlistStudents, getShortlistedStudents, autoAllocateCocos, getCocoConflicts, addApc, getApcs, removeApc, uploadApcExcel,
-  deleteCoco,
+  deleteCoco, deleteStudent,
   getQueries, respondToQuery,
   getDriveState, updateDriveState, sendBroadcastNotification,
   getApcNotifications, markApcNotifRead, clearAllApcNotifications,
@@ -30,6 +30,7 @@ router.post("/students/shortlist", shortlistStudents);
 router.post("/students", addStudent);
 router.post("/apc", addApc);
 router.get("/students/:id/companies", getStudentCompanies);
+router.delete("/students/:id", deleteStudent);
 router.get("/companies/:id/students", getShortlistedStudents);
 router.get("/cocos", getCocos);
 router.post("/cocos", addCoco);

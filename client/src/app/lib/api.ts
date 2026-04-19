@@ -287,6 +287,8 @@ export const adminApi = {
         request("/admin/remove-coco", { method: "POST", body: JSON.stringify(data) }),
     deleteCoco: (cocoId: string) =>
         request(`/admin/cocos/${cocoId}`, { method: "DELETE" }),
+    deleteStudent: (studentId: string) =>
+        request(`/admin/students/${studentId}`, { method: "DELETE" }),
     uploadCompanyExcel: (formData: FormData) =>
         uploadRequest("/admin/upload/companies", formData),
     uploadShortlistExcel: (formData: FormData) =>

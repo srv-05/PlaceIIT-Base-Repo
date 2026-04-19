@@ -463,6 +463,42 @@ const deleteCoco = async (req, res) => {
   }
 };
 
+// @desc    Permanently delete a Student (student + user account + related data)
+// @route   DELETE /api/admin/students/:id
+const deleteStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const student = await Student.findById(id);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+
+    // Remove this student from all company shortlists
+    await Company.updateMany(
+      { shortlistedStudents: student._id },
+      { $pull: { shortlistedStudents: student._id } }
+    );
+
+    // Delete queue entries for this student
+    const Queue = require("../models/Queue.model");
+    await Queue.deleteMany({ studentId: student._id });
+
+    // Delete queries submitted by this student
+    const Query = require("../models/Query.model");
+    await Query.deleteMany({ studentUserId: student.userId });
+
+    // Delete notifications for this student
+    await Notification.deleteMany({ recipientId: student.userId });
+
+    // Delete the student record and the user account
+    await Student.findByIdAndDelete(id);
+    await User.findByIdAndDelete(student.userId);
+
+    await emitStatsUpdate();
+    res.json({ message: "Student deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // @desc    Upload Excel - company info
 // @route   POST /api/admin/upload/companies
 const uploadCompanyExcel = async (req, res) => {
@@ -986,6 +1022,10 @@ const updateDriveState = async (req, res) => {
       state.currentDay = day;
       state.currentSlot = slot;
       await state.save();
+
+      // Clear all CoCo assignments when drive state changes
+      await Coordinator.updateMany({}, { $set: { assignedCompanies: [] } });
+      await Company.updateMany({}, { $set: { assignedCocos: [] } });
     }
 
     // Broadcast to ALL connected clients
@@ -1206,7 +1246,7 @@ const deleteAllCocos = async (req, res) => {
 module.exports = {
   getStats, getCompanies, addCompany, updateCompany,
   searchStudents, getStudentCompanies, getCocos, addCoco, addStudent, getApcs, addApc, removeApc,
-  assignCoco, removeCoco, deleteCoco,
+  assignCoco, removeCoco, deleteCoco, deleteStudent,
   uploadCompanyExcel, uploadShortlistExcel, uploadCocoExcel, uploadApcExcel, uploadStudentExcel, uploadCocoRequirementsExcel, getUploadStatus,
   shortlistStudents, getShortlistedStudents, autoAllocateCocos, getCocoConflicts,
   getQueries, respondToQuery,

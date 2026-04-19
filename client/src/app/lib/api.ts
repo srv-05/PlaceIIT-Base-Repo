@@ -309,8 +309,8 @@ export const adminApi = {
     /** @deprecated use addCoco instead */
     registerUser: (data: Record<string, unknown>) =>
         request("/auth/register", { method: "POST", body: JSON.stringify(data) }),
-    autoAllocateCocos: () =>
-        request("/admin/auto-allocate-cocos", { method: "POST" }),
+    autoAllocateCocos: (params?: { day?: number; slot?: string }) =>
+        request("/admin/auto-allocate-cocos", { method: "POST", body: JSON.stringify(params ?? {}) }),
     getCocoConflicts: () =>
         request("/admin/coco-conflicts"),
     getQueries: () => request("/admin/queries"),

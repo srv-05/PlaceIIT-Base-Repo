@@ -260,7 +260,10 @@ export function ManageCoCoPage({ onCoCoClick }: ManageCoCoPageProps) {
   const handleRandomAllocation = async () => {
     setLoading(true);
     try {
-      const res: any = await adminApi.autoAllocateCocos();
+      const params: { day?: number; slot?: string } = {};
+      if (driveDay != null) params.day = driveDay;
+      if (driveSlot) params.slot = driveSlot;
+      const res: any = await adminApi.autoAllocateCocos(params);
       toast.success(`Auto-allocation completed! ${res.totalAllocated} companies allocated.`);
       if (res.warning) {
         toast.warning(res.warning, { duration: 8000 });

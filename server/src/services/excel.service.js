@@ -60,6 +60,19 @@ const processCompanyExcel = async (uploadId, filePath) => {
         slot = "morning"; // fallback
       }
 
+      // Check for duplicate venue in the same day and slot (exclude the company itself by name)
+      const venueConflict = await Company.findOne({
+        name: { $ne: companyName },
+        day: day,
+        slot: slot,
+        venue: { $regex: new RegExp(`^${venue}$`, 'i') },
+        isActive: true
+      });
+      if (venueConflict) {
+        problemList.push(`Row ${i + 1}: Venue "${venue}" is already assigned to "${venueConflict.name}" on Day ${day}, ${slot} slot`);
+        continue;
+      }
+
       await Company.findOneAndUpdate({ name: companyName }, {
         name: companyName,
         day: day,
@@ -309,4 +322,55 @@ const processStudentExcel = async (uploadId, filePath) => {
   }
 };
 
-module.exports = { processCompanyExcel, processShortlistExcel, processCocoExcel, processStudentExcel };
+const { createApc } = require("./apc.service");
+
+const processApcExcel = async (uploadId, filePath) => {
+  try {
+    const wb = XLSX.readFile(filePath);
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+
+    // Validate headers exactly
+    const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    if (rawData.length === 0) throw new Error("Excel file is empty");
+    const headers = rawData[0].map(h => String(h).trim());
+    if (headers[0] !== "Name" || headers[1] !== "Email" || headers[2] !== "Institute ID" || headers[3] !== "Phone Number") {
+      throw new Error("Invalid Excel format. Required columns: Name, Email, Institute ID, Phone Number");
+    }
+
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    let processed = 0;
+    const problemList = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = String(row["Name"] || "").trim();
+      const email = String(row["Email"] || "").trim().toLowerCase();
+      const roll = String(row["Institute ID"] || "").trim();
+      const phone = String(row["Phone Number"] || "").trim();
+
+      if (!name || !email || !roll || !phone) {
+        problemList.push(`Row ${i + 2}: Missing one of required fields (Name, Email, Institute ID, Phone Number)`);
+        continue;
+      }
+
+      try {
+        await createApc({ name, email, rollNumber: roll, contact: phone });
+        processed++;
+      } catch (err) {
+        console.error(`[processApcExcel] Error on Row ${i + 2}:`, err.message);
+        problemList.push(`Row ${i + 2}: ${err.message}`);
+        if (err.message.includes("Account created successfully")) {
+          processed++;
+        }
+      }
+    }
+    await ExcelUpload.findByIdAndUpdate(uploadId, { status: "success", recordsProcessed: processed, problemList });
+    return { processed, problemList };
+  } catch (err) {
+    await ExcelUpload.findByIdAndUpdate(uploadId, { status: "failed", problemList: [err.message] });
+    throw err;
+  }
+};
+
+module.exports = { processCompanyExcel, processShortlistExcel, processCocoExcel, processStudentExcel, processApcExcel };
+

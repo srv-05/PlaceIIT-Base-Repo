@@ -108,7 +108,7 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
   const fetchSchedule = useCallback(async () => {
     setLoadingSchedule(true);
     try {
-      const data: any = await adminApi.getCompanies();
+      const data: any = await adminApi.getCompanies({ day: driveDay });
       const companies = Array.isArray(data) ? data : data.companies ?? [];
       const items: ScheduleItem[] = companies.slice(0, 5).map((c: any, i: number) => ({
         id: c._id ?? String(i),
@@ -124,7 +124,7 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
     } finally {
       setLoadingSchedule(false);
     }
-  }, []);
+  }, [driveDay]);
 
   const fetchDriveState = useCallback(async () => {
     try {

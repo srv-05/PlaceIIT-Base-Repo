@@ -261,7 +261,13 @@ export const cocoApi = {
    ═══════════════════════════════════════════════════════════ */
 export const adminApi = {
     getStats: () => request("/admin/stats"),
-    getCompanies: () => request("/admin/companies"),
+    getCompanies: (params?: { day?: number; slot?: string }) => {
+        const queryParts: string[] = [];
+        if (params?.day != null) queryParts.push(`day=${params.day}`);
+        if (params?.slot) queryParts.push(`slot=${encodeURIComponent(params.slot)}`);
+        const qs = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+        return request(`/admin/companies${qs}`);
+    },
     addCompany: (data: Record<string, unknown>) =>
         request("/admin/companies", { method: "POST", body: JSON.stringify(data) }),
     updateCompany: (id: string, data: Record<string, unknown>) =>

@@ -1305,6 +1305,47 @@ const deleteAllCocos = async (req, res) => {
   }
 };
 
+// @desc    Delete ALL companies and their related data
+// @route   POST /api/admin/reset/companies
+const deleteAllCompanies = async (req, res) => {
+  try {
+    const Queue = require("../models/Queue.model");
+
+    const companyCount = await Company.countDocuments();
+
+    // Delete all queue entries (they reference companies)
+    await Queue.deleteMany({});
+
+    // Delete all companies
+    await Company.deleteMany({});
+
+    // Clear assignedCompanies on all coordinators
+    await Coordinator.updateMany({}, { $set: { assignedCompanies: [] } });
+
+    await emitStatsUpdate();
+    res.json({ message: `${companyCount} company(ies) and all related data deleted successfully` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Remove ALL CoCo allocations (unassign CoCos from all companies)
+// @route   POST /api/admin/reset/coco-allocations
+const removeAllCocoAllocations = async (req, res) => {
+  try {
+    // Clear assignedCompanies on every coordinator
+    await Coordinator.updateMany({}, { $set: { assignedCompanies: [] } });
+
+    // Clear assignedCocos on every company
+    await Company.updateMany({}, { $set: { assignedCocos: [] } });
+
+    await emitStatsUpdate();
+    res.json({ message: "All CoCo allocations removed successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getStats, getCompanies, addCompany, updateCompany,
   searchStudents, getStudentCompanies, getCocos, addCoco, addStudent, getApcs, addApc, removeApc,
@@ -1315,5 +1356,6 @@ module.exports = {
   getDriveState, updateDriveState, sendBroadcastNotification,
   getApcNotifications, markApcNotifRead, clearAllApcNotifications,
   updateApcProfile,
-  deleteAllSubApcs, deleteAllStudents, deleteAllCocos
+  deleteAllSubApcs, deleteAllStudents, deleteAllCocos,
+  deleteAllCompanies, removeAllCocoAllocations
 };

@@ -343,6 +343,10 @@ export const adminApi = {
         request("/admin/reset/students", { method: "POST" }),
     resetAllCocos: () =>
         request("/admin/reset/cocos", { method: "POST" }),
+    resetAllCompanies: () =>
+        request("/admin/reset/companies", { method: "POST" }),
+    removeAllCocoAllocations: () =>
+        request("/admin/reset/coco-allocations", { method: "POST" }),
 };
 
 /* ═══════════════════════════════════════════════════════════

@@ -70,9 +70,25 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
   const [driveDay, setDriveDay] = useState(1);
   const [driveSlot, setDriveSlot] = useState("morning");
   const [selectedDay, setSelectedDay] = useState(1);
+  const [dayInputText, setDayInputText] = useState("Day 1");
   const [selectedSlot, setSelectedSlot] = useState("morning");
   const [showDriveConfirm, setShowDriveConfirm] = useState(false);
   const [updatingDrive, setUpdatingDrive] = useState(false);
+
+  // Parse day number from free-text input like "2", "day 2", "Day 2", "DAY 2"
+  const parseDayInput = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    // Remove optional "day" prefix (case-insensitive), then parse the number
+    const num = parseInt(trimmed.replace(/^day\s*/i, ""), 10);
+    if (!isNaN(num) && num >= 1) {
+      setSelectedDay(num);
+      setDayInputText(`Day ${num}`);
+    } else {
+      // Revert to current selectedDay on invalid input
+      setDayInputText(`Day ${selectedDay}`);
+    }
+  };
 
   // ── Broadcast Notification ───────────────────────────────────────────────────
   const [notifMessage, setNotifMessage] = useState("");
@@ -84,6 +100,8 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
   const [showResetApcs, setShowResetApcs] = useState(false);
   const [showResetStudents, setShowResetStudents] = useState(false);
   const [showResetCocos, setShowResetCocos] = useState(false);
+  const [showResetCompanies, setShowResetCompanies] = useState(false);
+  const [showRemoveCocoAlloc, setShowRemoveCocoAlloc] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [resetting, setResetting] = useState(false);
 
@@ -111,9 +129,11 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
   const fetchDriveState = useCallback(async () => {
     try {
       const data: any = await adminApi.getDriveState();
-      setDriveDay(data.currentDay ?? 1);
+      const day = data.currentDay ?? 1;
+      setDriveDay(day);
       setDriveSlot(data.currentSlot ?? "morning");
-      setSelectedDay(data.currentDay ?? 1);
+      setSelectedDay(day);
+      setDayInputText(`Day ${day}`);
       setSelectedSlot(data.currentSlot ?? "morning");
     } catch {
       // defaults already set
@@ -142,6 +162,7 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
       setDriveDay(data.currentDay);
       setDriveSlot(data.currentSlot);
       setSelectedDay(data.currentDay);
+      setDayInputText(`Day ${data.currentDay}`);
       setSelectedSlot(data.currentSlot);
     };
     socket.on("driveState:updated", handleDriveUpdate);
@@ -232,6 +253,35 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
     }
   };
 
+  const handleResetCompanies = async () => {
+    setResetting(true);
+    try {
+      const res: any = await adminApi.resetAllCompanies();
+      toast.success(res.message || "All companies deleted");
+      setShowResetCompanies(false);
+      setResetConfirmText("");
+      fetchSchedule();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete companies");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleRemoveCocoAlloc = async () => {
+    setResetting(true);
+    try {
+      const res: any = await adminApi.removeAllCocoAllocations();
+      toast.success(res.message || "All CoCo allocations removed");
+      setShowRemoveCocoAlloc(false);
+      setResetConfirmText("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove CoCo allocations");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <>
       {/* Header Section */}
@@ -288,15 +338,14 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
             {/* Controls */}
             <div className="flex flex-col gap-4">
               <div>
-                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Select Day</Label>
-                <Select value={String(selectedDay)} onValueChange={(v) => setSelectedDay(Number(v))}>
-                  <SelectTrigger><SelectValue placeholder="Select Day" /></SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map((d) => (
-                      <SelectItem key={d} value={String(d)}>Day {d}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Enter Day</Label>
+                <Input
+                  value={dayInputText}
+                  onChange={(e) => setDayInputText(e.target.value)}
+                  onBlur={() => parseDayInput(dayInputText)}
+                  onKeyDown={(e) => { if (e.key === "Enter") parseDayInput(dayInputText); }}
+                  placeholder="e.g. 2 or Day 2"
+                />
               </div>
               <div>
                 <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Select Slot</Label>
@@ -561,6 +610,22 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
               <Trash2 className="h-4 w-4 mr-2" />
               Delete All CoCos
             </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50"
+              onClick={() => { setResetConfirmText(""); setShowResetCompanies(true); }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete All Companies
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-amber-300 text-amber-700 hover:bg-amber-50"
+              onClick={() => { setResetConfirmText(""); setShowRemoveCocoAlloc(true); }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove CoCo Allocation
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -651,6 +716,66 @@ export function APCHomePage({ userName, stats, onNavigate }: APCHomePageProps) {
             >
               {resetting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete All CoCos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showResetCompanies} onOpenChange={setShowResetCompanies}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-700">Delete All Companies</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all companies, their queue entries, and clear all CoCo assignments. This action cannot be undone.
+              <br /><br />
+              Type <strong>DELETE ALL COMPANIES</strong> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={resetConfirmText}
+            onChange={(e) => setResetConfirmText(e.target.value)}
+            placeholder="Type confirmation here"
+            className="mt-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setResetConfirmText("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetCompanies}
+              disabled={resetConfirmText !== "DELETE ALL COMPANIES" || resetting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {resetting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete All Companies
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showRemoveCocoAlloc} onOpenChange={setShowRemoveCocoAlloc}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-amber-700">Remove CoCo Allocation</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will unassign all CoCos from all companies across every day and slot. CoCo accounts will not be deleted.
+              <br /><br />
+              Type <strong>REMOVE ALLOCATION</strong> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={resetConfirmText}
+            onChange={(e) => setResetConfirmText(e.target.value)}
+            placeholder="Type confirmation here"
+            className="mt-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setResetConfirmText("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveCocoAlloc}
+              disabled={resetConfirmText !== "REMOVE ALLOCATION" || resetting}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {resetting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Remove Allocation
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

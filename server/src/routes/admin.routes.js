@@ -13,7 +13,8 @@ const {
   getDriveState, updateDriveState, sendBroadcastNotification,
   getApcNotifications, markApcNotifRead, clearAllApcNotifications,
   updateApcProfile,
-  deleteAllSubApcs, deleteAllStudents, deleteAllCocos
+  deleteAllSubApcs, deleteAllStudents, deleteAllCocos,
+  deleteAllCompanies, removeAllCocoAllocations
 } = require("../controllers/admin.controller");
 const { protect } = require("../middlewares/auth.middleware");
 const { authorize } = require("../middlewares/role.middleware");
@@ -62,5 +63,7 @@ router.put("/profile", updateApcProfile);
 router.post("/reset/apcs", deleteAllSubApcs);
 router.post("/reset/students", deleteAllStudents);
 router.post("/reset/cocos", deleteAllCocos);
+router.post("/reset/companies", deleteAllCompanies);
+router.post("/reset/coco-allocations", removeAllCocoAllocations);
 
 module.exports = router;

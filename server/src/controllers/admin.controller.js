@@ -138,6 +138,90 @@ const updateCompany = async (req, res) => {
   }
 };
 
+// @desc    Permanently delete a Company
+// @route   DELETE /api/admin/companies/:id
+const deleteCompany = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findById(id);
+    if (!company) return res.status(404).json({ message: "Company not found" });
+
+    // Fetch students to notify
+    const Queue = require("../models/Queue.model");
+    const queueEntries = await Queue.find({ companyId: id }).populate("studentId");
+    
+    // Students in shortlist
+    const shortlistedStudents = await Student.find({ _id: { $in: company.shortlistedStudents } });
+    
+    // Combine students for notification
+    const studentsToNotify = new Map();
+    queueEntries.forEach(q => {
+      if (q.studentId && q.studentId.userId) {
+        studentsToNotify.set(q.studentId._id.toString(), q.studentId.userId);
+      }
+    });
+    shortlistedStudents.forEach(s => {
+      if (s.userId) {
+        studentsToNotify.set(s._id.toString(), s.userId);
+      }
+    });
+
+    const { sendNotification } = require("../services/notification.service");
+    
+    // Send notifications
+    await Promise.all(
+      Array.from(studentsToNotify.values()).map(userId => 
+        sendNotification({
+          recipientId: userId,
+          senderId: req.user.id,
+          senderModel: "User",
+          source: "apc",
+          message: `The company ${company.name} has been removed from the schedule.`,
+          type: "alert"
+        }).catch(err => console.error("Notification failed", err))
+      )
+    );
+
+    // Notify CoCos as well
+    const assignedCocos = await Coordinator.find({ assignedCompanies: id });
+    await Promise.all(
+      assignedCocos.map(coco => 
+        sendNotification({
+          recipientId: coco.userId,
+          senderId: req.user.id,
+          senderModel: "User",
+          source: "apc",
+          message: `The company ${company.name} has been removed from the schedule. You have been unassigned.`,
+          type: "alert"
+        }).catch(err => console.error("Coco notification failed", err))
+      )
+    );
+
+    // Remove from Coordinator's assignedCompanies
+    await Coordinator.updateMany(
+      { assignedCompanies: id },
+      { $pull: { assignedCompanies: id } }
+    );
+
+    // Remove from Student's shortlistedCompanies
+    await Student.updateMany(
+      { shortlistedCompanies: id },
+      { $pull: { shortlistedCompanies: id } }
+    );
+
+    // Delete queue entries
+    await Queue.deleteMany({ companyId: id });
+
+    // Finally, delete the company
+    await Company.findByIdAndDelete(id);
+
+    await emitStatsUpdate();
+    res.json({ message: "Company deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // @desc    Search students
 // @route   GET /api/admin/students/search
 const searchStudents = async (req, res) => {
@@ -1347,7 +1431,7 @@ const removeAllCocoAllocations = async (req, res) => {
 };
 
 module.exports = {
-  getStats, getCompanies, addCompany, updateCompany,
+  getStats, getCompanies, addCompany, updateCompany, deleteCompany,
   searchStudents, getStudentCompanies, getCocos, addCoco, addStudent, getApcs, addApc, removeApc,
   assignCoco, removeCoco, deleteCoco, deleteStudent,
   uploadCompanyExcel, uploadShortlistExcel, uploadCocoExcel, uploadApcExcel, uploadStudentExcel, uploadCocoRequirementsExcel, getUploadStatus,

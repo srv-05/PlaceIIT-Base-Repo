@@ -272,6 +272,8 @@ export const adminApi = {
         request("/admin/companies", { method: "POST", body: JSON.stringify(data) }),
     updateCompany: (id: string, data: Record<string, unknown>) =>
         request(`/admin/companies/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    deleteCompany: (id: string) =>
+        request(`/admin/companies/${id}`, { method: "DELETE" }),
     searchStudents: (query: string) =>
         request(`/admin/students/search?q=${encodeURIComponent(query)}`),
     getCocos: (params?: { day?: number; slot?: string }) => {

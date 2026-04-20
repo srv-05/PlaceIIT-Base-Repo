@@ -4,7 +4,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
-import { Search, Plus, Upload, MapPin, UserCog, Users, Calendar, Clock, Eye, Loader2, X, Check } from "lucide-react";
+import { Search, Plus, Upload, MapPin, UserCog, Users, Calendar, Clock, Eye, Loader2, X, Check, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,17 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/app/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/app/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -220,6 +231,19 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
     } catch (err: any) {
       toast.error("Failed to save venue: " + (err.message ?? ""));
       await fetchCompanies();
+    }
+  };
+
+  const handleDeleteCompany = async (companyId: string) => {
+    setSaving(true);
+    try {
+      const res: any = await adminApi.deleteCompany(companyId);
+      toast.success(res.message || "Company deleted successfully");
+      await fetchCompanies();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete company");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -524,6 +548,32 @@ export function ManageCompaniesPage({ onCompanyClick }: ManageCompaniesPageProps
                   <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm text-xs sm:text-sm" size="sm" onClick={() => onCompanyClick(company)}>
                     <Eye className="h-4 w-4" /> View Details
                   </Button>
+
+                  {/* Delete Company Button */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+                        <Trash2 className="h-4 w-4" /> Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {company.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action is irreversible. It will remove the company from the schedule, delete all queue entries, clear shortlisted students, and notify all affected students.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteCompany(company.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Yes, Delete Company
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
                   {/* Add Students Manually */}
                   <Dialog

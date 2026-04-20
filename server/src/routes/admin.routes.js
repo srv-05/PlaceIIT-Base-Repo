@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const {
-  getStats, getCompanies, addCompany, updateCompany,
+  getStats, getCompanies, addCompany, updateCompany, deleteCompany,
   searchStudents, getCocos, addCoco, addStudent,
   assignCoco, removeCoco,
   uploadCompanyExcel, uploadShortlistExcel, uploadCocoExcel,
@@ -26,6 +26,7 @@ router.get("/stats", getStats);
 router.get("/companies", getCompanies);
 router.post("/companies", addCompany);
 router.put("/companies/:id", updateCompany);
+router.delete("/companies/:id", deleteCompany);
 router.get("/students/search", searchStudents);
 router.post("/students/shortlist", shortlistStudents);
 router.post("/students", addStudent);
